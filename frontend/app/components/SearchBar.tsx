@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { SearchResults } from "../interfaces/types";
 import Image from "next/image";
 
@@ -22,7 +23,7 @@ const SearchBar = () => {
         const data = await response.json();
 
         setFilteredData(data);
-        console.log(filteredData);
+        console.log(data); // ✅ log the fresh result
       } catch (error) {
         console.error("Failed to fetch autocomplete data", error);
       }
@@ -32,7 +33,7 @@ const SearchBar = () => {
   }, [search]);
 
   return (
-    <div>
+    <div className={focus ? "bg-gray-200" : ""}>
       <div className="flex flex-row border border-black">
         <Image src={"/Search.svg"} alt="20" width={20} height={20} />
         <input
@@ -41,31 +42,34 @@ const SearchBar = () => {
           placeholder="Search"
           value={search}
           onFocus={() => setFocus(true)}
-          onBlur={() => setFocus(false)}
+          onBlur={() => setTimeout(() => setFocus(false), 150)} // ✅ Allow click before blur closes dropdown
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             setSearch(e.target.value)
           }
         />
       </div>
-      {filteredData && (
-        <ul className="text-black">
-          {filteredData.data.quotes.map((item: any) => (
-            // <SearchResult onChange={setStock()} item={item} key={item.symbol} />
-            <div
-              className="flex flex-row hover:bg-gray-200"
-              onClick={() => setStock(item.symbol)}
-            >
-              <h1 className="min-w-[10vw]">{item.symbol}</h1>
-              <h2>{item.shortname}</h2>
-            </div>
-          ))}
-        </ul>
-      )}
-      {!filteredData && focus && (
-        <div>
-          <h1>Stocks</h1>
-        </div>
-      )}
+      <div className="z-10">
+        {filteredData && focus && (
+          <ul>
+            {filteredData.data.quotes.map((item: any) => (
+              <li key={item.symbol}>
+                <Link
+                  href={`/stock/${item.symbol}`}
+                  className="flex flex-row hover:bg-gray-300"
+                >
+                  <h1 className="min-w-[10vw]">{item.symbol}</h1>
+                  <h2>{item.shortname}</h2>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!filteredData && focus && (
+          <div>
+            <h1>Stocks</h1>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

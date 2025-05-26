@@ -1,5 +1,5 @@
-// app/api/autocomplete/[search]/route.ts
 import { NextResponse } from 'next/server';
+import { RAPIDAPI_KEY, RAPIDAPI_HOST } from '@/app/environment/environment'
 
 export async function GET(
   request: Request,
@@ -7,13 +7,13 @@ export async function GET(
 ) {
   const { search } = params;
 
-  const url = "https://apidojo-yahoo-finance-v1.p.rapidapi.com";
+  const url = process.env.url 
   
   try {
     const res = await fetch(`${url}/auto-complete?region=US&q=${search}`, {
       headers: {
-        'x-rapidapi-key': `${process.env.rapidapiKey}`,
-		    'x-rapidapi-host': `${process.env.rapidapiHost}` 
+       'x-rapidapi_key': process.env.RAPIDAPI_KEY!,
+      'x-rapidapi_host': process.env.RAPIDAPI_HOST!,
       }
     });
 
