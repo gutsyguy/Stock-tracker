@@ -16,8 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(`https://${url}/stock/v3/get-chart?interval=${interval}&region=US&symbol=${symbol}&range=${range}&includePrePost=false&useYfid=true&includeAdjustedClose=true&events=capitalGain%2Cdiv%2Csplit`, {
       headers: {
-        'x-rapidapi-key': "5fc88df8a2msh2fabb3ffd664437p155b31jsna642614ab149",
-        'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com",
+       
       },
     })
 
