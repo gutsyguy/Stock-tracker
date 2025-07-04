@@ -1,25 +1,27 @@
+// File: src/main/java/com/example/backend/Neon/NeonDBIntegration.java
+// File: src/main/java/com/example/backend/Neon/NeonDBIntegration.java
+
 package com.example.backend.Neon;
 
-import java.sql.*;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
-
+@Component
 public class NeonDBIntegration {
-    private static final String DB_URL = "jdbc:postgresql://localhost:5432/neon";
-    private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "password";
 
-    public static void main(String[] args) {
-        try (
-            Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM users");
-        ) {
-            while (resultSet.next()) {
-                System.out.println(resultSet.getString("name"));
-            }
-        } catch (SQLException e) {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @PostConstruct
+    public void init() {
+        try {
+            jdbcTemplate.execute("SELECT 1");
+            System.out.println("✅ Successfully connected to the Neon database.");
+        } catch (Exception e) {
+            System.err.println("❌ Failed to connect to the Neon database:");
             e.printStackTrace();
         }
     }
-
 }

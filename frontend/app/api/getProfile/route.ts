@@ -13,7 +13,7 @@ export async function GET() {
     const interval = "1mo"
     const res = await fetch(`https://${url}/stock/v3/get-profile?symbol=${symbol}&region=US&lang=en-US`, {
         headers: {
-		      	}
+		       	}
     })
   const data = await res.json()
  

@@ -16,8 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(`https://${url}/stock/v3/get-chart?interval=${interval}&region=US&symbol=${symbol}&range=${range}&includePrePost=false&useYfid=true&includeAdjustedClose=true&events=capitalGain%2Cdiv%2Csplit`, {
       headers: {
-       
-      },
+             },
     })
 
     if (!res.ok) {
