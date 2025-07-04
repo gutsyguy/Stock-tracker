@@ -4,35 +4,109 @@ import { useEffect, useState } from "react";
 import SearchBar from "@/app/components/SearchBar";
 import AMRNChart from "@/app/components/AMRNChart";
 import { StockData } from "@/app/interfaces/types";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 
 const Stock = () => {
-  const symbol = useParams().id;
+  const router = useRouter();
+
+  const rangeIntervalPairs = [
+    { range: "1d", interval: "5m" },
+    { range: "5d", interval: "15m" },
+    { range: "1mo", interval: "1d" },
+    { range: "3mo", interval: "1d" },
+    { range: "6mo", interval: "1wk" },
+    { range: "1y", interval: "1wk" },
+    { range: "2y", interval: "1wk" },
+    { range: "5y", interval: "1mo" },
+    { range: "10y", interval: "1mo" },
+  ];
+
+  const { id: symbol } = useParams();
+  const searchParams = useSearchParams();
+  const [range, setRange] = useState(searchParams.get("range") ?? "6mo");
+  const [interval, setInterval] = useState(
+    searchParams.get("interval") ?? "1wk"
+  );
   const [stockData, setStockData] = useState<StockData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchStockData = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const response = await fetch(
-          `/api/getStock?symbol=${symbol}&range=${"1y"}&interval=${"1mo"}`
+          `/api/getStock?symbol=${symbol}&range=${range}&interval=${interval}`
         );
         const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch stock data');
+        }
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
         console.log(data);
         setStockData(data);
       } catch (error) {
         console.error(error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+        setStockData(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchStockData();
-  }, []);
+  }, [range, interval, symbol]);
 
   return (
     <div>
       <div className="flex justify-center w-[100%]">
         <SearchBar />
       </div>
-      {stockData && <AMRNChart stockData={stockData} />}
+      
+      {isLoading && (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-gray-500">Loading chart data...</p>
+        </div>
+      )}
+      
+      {error && (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-red-500">{error}</p>
+        </div>
+      )}
+      
+      {stockData && !isLoading && !error && <AMRNChart stockData={stockData} />}
+      
+      <div className="flex items-center flex-col">
+        <ul className="flex w-1/2 justify-evenly text-sm text-gray-500">
+          {rangeIntervalPairs.map((pair, index) => {
+            return (
+              <li
+                key={index}
+                onClick={() => {
+                  setRange(pair.range);
+                  setInterval(pair.interval);
+                  router.replace(
+                    `/stock/${symbol}?range=${pair.range}&interval=${pair.interval}`,
+                    { scroll: false }
+                  );
+                }}
+                className={`cursor-pointer hover:text-gray-700 ${
+                  range === pair.range ? 'text-blue-600 font-semibold' : ''
+                }`}
+              >
+                {pair.range}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 };

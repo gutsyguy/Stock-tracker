@@ -1,20 +1,41 @@
 import React, { useEffect, useRef } from "react";
 import Chart from "chart.js/auto";
 import type { Chart as ChartJS } from "chart.js";
-import { AMRNChartProps, StockData } from "../interfaces/types";
+import { AMRNChartProps } from "../interfaces/types";
+import type { ChartConfiguration } from "chart.js";
 
 const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
-  const chartInstance = useRef<ChartJS<"line"> | null>(null);
+  const chartInstance = useRef<ChartJS<
+    "line",
+    (number | null)[],
+    string
+  > | null>(null);
 
-  const timestamps = stockData.data.chart.result[0].timestamp;
+  // Validate that we have the required data structure
+  if (!stockData?.data?.chart?.result?.[0]) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">No chart data available for this time range</p>
+      </div>
+    );
+  }
 
-  const closingPrices =
-    stockData.data.chart.result[0].indicators.quote[0].close;
+  const chartResult = stockData.data.chart.result[0];
+  const timestamps = chartResult.timestamp;
+  const closingPrices = chartResult.indicators.quote[0]
+    .close as (number | null)[];
 
-  const labels = timestamps.map(
-    (ts) => new Date(ts * 1000).toISOString().split("T")[0]
-  );
+  // Additional validation for required arrays
+  if (!timestamps || !closingPrices || timestamps.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">Invalid chart data structure</p>
+      </div>
+    );
+  }
+
+  const labels = timestamps.map((ts) => new Date(ts * 1000).toLocaleString());
 
   useEffect(() => {
     if (chartInstance.current) {
@@ -23,17 +44,55 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
 
     const canvas = chartRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    chartInstance.current = new Chart(ctx, {
+    const verticalLinePlugin = {
+      id: "verticalLinePlugin",
+      beforeEvent: (chart: any, args: any) => {
+        const { event } = args;
+        if (event.type === 'mousemove') {
+          const { chartArea } = chart;
+          if (chartArea) {
+            if (
+              event.x >= chartArea.left &&
+              event.x <= chartArea.right &&
+              event.y >= chartArea.top &&
+              event.y <= chartArea.bottom
+            ) {
+              chart._cachedCrosshairX = event.x;
+            } else {
+              chart._cachedCrosshairX = null;
+            }
+          }
+        } else if (event.type === 'mouseout') {
+          chart._cachedCrosshairX = null;
+        }
+      },
+      afterDraw: (chart: any) => {
+        const x = chart._cachedCrosshairX;
+        const { ctx, chartArea } = chart;
+
+        if (x != null && chartArea) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(x, chartArea.top);
+          ctx.lineTo(x, chartArea.bottom);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = "rgba(0,0,0,0.5)";
+          ctx.stroke();
+          ctx.restore();
+        }
+      },
+    };
+
+    const config: ChartConfiguration<"line", (number | null)[], string> = {
       type: "line",
       data: {
         labels,
         datasets: [
           {
-            label: `${stockData.data.chart.result[0].meta.symbol} Closing Price`,
+            label: `${chartResult.meta.symbol} Closing Price`,
             data: closingPrices,
             borderColor: "blue",
             backgroundColor: "rgba(0, 0, 255, 0.1)",
@@ -45,10 +104,22 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
       },
       options: {
         responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
         plugins: {
+          tooltip: {
+            callbacks: {
+              title: (tooltipItems) => {
+                const idx = tooltipItems[0].dataIndex;
+                return labels[idx];
+              },
+            },
+          },
           title: {
             display: true,
-            text: `${stockData.data.chart.result[0].meta.symbol} Closing Prices Over Time`,
+            text: `${chartResult.meta.symbol} Closing Prices Over Time`,
           },
           legend: {
             display: true,
@@ -56,6 +127,7 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
         },
         scales: {
           x: {
+            display: false,
             title: {
               display: true,
               text: "Date",
@@ -69,8 +141,19 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
           },
         },
       },
-    });
-  }, [labels, closingPrices]);
+      plugins: [verticalLinePlugin],
+    };
+
+    chartInstance.current = new Chart(ctx, config);
+
+    // Cleanup function
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+        chartInstance.current = null;
+      }
+    };
+  }, [labels, closingPrices, chartResult.meta.symbol]);
 
   return (
     <div>
