@@ -65,8 +65,10 @@ const Stock = () => {
 
   return (
     <div>
-      <div className="flex justify-center w-[100%]">
-        <SearchBar />
+      <div className="flex justify-center w-full mt-10">
+        <div className="flex flex-col w-[50vw]">
+          <SearchBar />
+        </div>
       </div>
       
       {isLoading && (

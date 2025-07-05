@@ -8,9 +8,9 @@ import { StockData } from "./interfaces/types";
 export default function Home() {
   return (
     <div className="flex justify-center bg-white text-black min-h-screen">
-      <div className="flex flex-col w-[50vw]">
+      <div className="flex flex-col w-[50vw] mt-10">
         <SearchBar />
-        <h1>Search for stocks</h1>
+        <h2 className="mt-4 text-lg text-gray-600">Search for stocks</h2>
       </div>
     </div>
   );
