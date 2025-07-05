@@ -15,8 +15,6 @@ export async function GET() {
         headers: {
           'x-rapidapi-key': process.env.RAPIDAPI_KEY!,
           'x-rapidapi-host': process.env.RAPIDAPI_HOST!,
-          // 'x-rapidapi-key': "5fc88df8a2msh2fabb3ffd664437p155b31jsna642614ab149",
-          // 'x-rapidapi-host': "apidojo-yahoo-finance-v1.p.rapidapi.com"
 		    }
     })
   const data = await res.json()
