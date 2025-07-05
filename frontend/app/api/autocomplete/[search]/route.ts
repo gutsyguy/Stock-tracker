@@ -31,8 +31,8 @@ export async function GET(
   try {
     const res = await fetch(`${url}/auto-complete?region=US&q=${search}`, {
       headers: {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST,
+       'x-rapidapi-key': process.env.RAPIDAPI_KEY!,
+          'x-rapidapi-host': process.env.RAPIDAPI_HOST!,
       }
     });
 

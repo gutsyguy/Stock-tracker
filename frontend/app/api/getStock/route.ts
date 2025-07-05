@@ -1,5 +1,6 @@
 // File: /app/api/chart/route.ts
 
+import { RAPIDAPI_HOST, RAPIDAPI_KEY } from '@/app/environment/environment'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(`https://${url}/stock/v3/get-chart?interval=${interval}&region=US&symbol=${symbol}&range=${range}&includePrePost=false&useYfid=true&includeAdjustedClose=true&events=capitalGain%2Cdiv%2Csplit`, {
       headers: {
+        'x-rapidapi-key': process.env.RAPIDAPI_KEY!,
+        'x-rapidapi-host': process.env.RAPIDAPI_HOST!,
               },
     })
 
