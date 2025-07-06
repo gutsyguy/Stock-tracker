@@ -3,3 +3,6 @@
 .env.staging
 .env.development
 .env
+
+
+backend/src/main/resources/application.properties
