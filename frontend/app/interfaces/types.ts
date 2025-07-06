@@ -131,3 +131,64 @@ export  interface SearchResults {
     tag: string;
   }
   
+  export type FundProfileResponse = {
+    data: {
+      quoteSummary: {
+        result: [
+          {
+            fundProfile: {
+              maxAge: number
+              styleBoxUrl: string
+              family: string
+              categoryName: string
+              legalType: string
+              managementInfo: {
+                managerName: string | null
+                managerBio: string | null
+                startdate: Record<string, unknown>
+              }
+              feesExpensesInvestment: FeeStructure
+              feesExpensesInvestmentCat: FeeStructure
+              initInvestment: Record<string, unknown>
+              initIraInvestment: Record<string, unknown>
+              initAipInvestment: Record<string, unknown>
+              subseqInvestment: Record<string, unknown>
+              subseqIraInvestment: Record<string, unknown>
+              subseqAipInvestment: Record<string, unknown>
+              brokerages: unknown[]
+            }
+            summaryProfile: {
+              longBusinessSummary: string
+              companyOfficers: unknown[]
+              executiveTeam: unknown[]
+              maxAge: number
+            }
+          }
+        ]
+        error: unknown | null
+      }
+    }
+  }
+  
+  type FeeStructure = {
+    annualReportExpenseRatio?: RatioField
+    frontEndSalesLoad?: Record<string, unknown>
+    deferredSalesLoad?: Record<string, unknown>
+    twelveBOne?: Record<string, unknown>
+    netExpRatio?: Record<string, unknown>
+    grossExpRatio?: Record<string, unknown>
+    annualHoldingsTurnover?: RatioField
+    totalNetAssets?: NumericField
+    projectionValues?: Record<string, unknown>
+    projectionValuesCat?: Record<string, unknown>
+  }
+  
+  type RatioField = {
+    raw: number
+    fmt: string
+  }
+  
+  type NumericField = {
+    raw: number
+    fmt: string
+  }

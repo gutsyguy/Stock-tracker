@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import SearchBar from "@/app/components/SearchBar";
 import AMRNChart from "@/app/components/AMRNChart";
-import { StockData } from "@/app/interfaces/types";
+import { FundProfileResponse, StockData } from "@/app/interfaces/types";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 
 const Stock = () => {
@@ -28,6 +28,7 @@ const Stock = () => {
     searchParams.get("interval") ?? "1wk"
   );
   const [stockData, setStockData] = useState<StockData | null>(null);
+  const [companyData, setCompanyData] = useState<FundProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,8 +49,7 @@ const Stock = () => {
         if (data.error) {
           throw new Error(data.error);
         }
-        
-        console.log(data);
+        console.log(data) 
         setStockData(data);
       } catch (error) {
         console.error(error);
@@ -62,6 +62,39 @@ const Stock = () => {
 
     fetchStockData();
   }, [range, interval, symbol]);
+
+
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `/api/getProfile?symbol=${symbol}`
+        );
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch stock data');
+        }
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        // console.log(data);
+        setCompanyData(data);
+      } catch (error) {
+        console.error(error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+        setCompanyData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompanyData();
+  }, [symbol]);
 
   return (
     <div>
@@ -108,6 +141,23 @@ const Stock = () => {
             );
           })}
         </ul>
+      </div>
+      <div className="flex items-center flex-col ">
+        <h1>About {stockData?.data.chart.result[0].meta.shortName}</h1>
+
+        <h2 className="w-[70%] ">{companyData?.data.quoteSummary.result[0].summaryProfile.longBusinessSummary}</h2>
+        <div className="flex">
+          <div className="">
+
+            <h2>CEO</h2>
+            {/* <h3>{companyData?.data.quoteSummary.result[0].summaryProfile.executiveTeam[0]}</h3> */}
+            <h2>Founded</h2>
+          </div>
+          <div className="">
+            <h2>Employees</h2>
+            <h2>Headquarters</h2>
+          </div>
+        </div>
       </div>
     </div>
   );
