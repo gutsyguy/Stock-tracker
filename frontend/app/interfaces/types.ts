@@ -87,3 +87,50 @@ export interface Resolution {
   height: number;
   tag: string;
 }
+
+
+export interface CompanyOfficer {
+  maxAge: number;
+  name: string;
+  age?: number;
+  title: string;
+  yearBorn?: number;
+  fiscalYear: number;
+  totalPay?: number;
+  exercisedValue: number;
+  unexercisedValue: number;
+}
+
+export interface AssetProfile {
+  address1: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  phone: string;
+  website: string;
+  industry: string;
+  industryKey: string;
+  industryDisp: string;
+  sector: string;
+  sectorKey: string;
+  sectorDisp: string;
+  longBusinessSummary: string;
+  fullTimeEmployees: number;
+  companyOfficers: CompanyOfficer[];
+  auditRisk: number;
+  boardRisk: number;
+  compensationRisk: number;
+  shareHolderRightsRisk: number;
+  overallRisk: number;
+  governanceEpochDate: string;
+  compensationAsOfEpochDate: string;
+  executiveTeam: any[]; // Adjust if structure known
+  maxAge: number;
+}
+
+export interface YahooFinanceAssetProfileResponse {
+  data: {
+    assetProfile: AssetProfile;
+  };
+}

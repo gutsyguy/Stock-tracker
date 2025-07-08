@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import SearchBar from "@/app/components/SearchBar";
 import AMRNChart from "@/app/components/AMRNChart";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-// import type { AlpacaStockDataResponse, FundProfileResponse } from "@/types";
 import type { AlpacaStockDataResponse } from "@/app/interfaces/types";
+import type { YahooFinanceAssetProfileResponse } from "@/app/interfaces/types";
 
 const Stock = () => {
   const router = useRouter();
@@ -19,7 +19,6 @@ const Stock = () => {
     { range: "1y", interval: "1wk" },
     { range: "2y", interval: "1wk" },
     { range: "5y", interval: "1mo" },
-    { range: "10y", interval: "1mo" },
   ];
 
   const { id: symbol } = useParams();
@@ -27,7 +26,7 @@ const Stock = () => {
   const [range, setRange] = useState(searchParams.get("range") ?? "6mo");
   const [interval, setInterval] = useState(searchParams.get("interval") ?? "1wk");
   const [stockData, setStockData] = useState<AlpacaStockDataResponse | null>(null);
-  // const [companyData, setCompanyData] = useState<FundProfileResponse | null>(null);
+  const [companyData, setCompanyData] = useState<YahooFinanceAssetProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -58,30 +57,25 @@ const Stock = () => {
     fetchStockData();
   }, [range, interval, symbol]);
 
-  // useEffect(() => {
-  //   const fetchCompanyData = async () => {
-  //     setIsLoading(true);
-  //     setError(null);
-  //     try {
-  //       const response = await fetch(`/api/getProfile?symbol=${symbol}`);
-  //       const data = await response.json();
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      try {
+        const response = await fetch(`/api/getProfile?symbol=${symbol}`);
+        const data: YahooFinanceAssetProfileResponse = await response.json();
 
-  //       if (!response.ok || data.error) {
-  //         throw new Error(data.error || "Failed to fetch company profile");
-  //       }
+        if (!response.ok || data.data == null) {
+          throw new Error("Failed to fetch company profile");
+        }
 
-  //       setCompanyData(data);
-  //     } catch (error) {
-  //       console.error(error);
-  //       setError(error instanceof Error ? error.message : "An error occurred");
-  //       setCompanyData(null);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
+        setCompanyData(data);
+      } catch (error) {
+        console.error(error);
+        setCompanyData(null);
+      }
+    };
 
-  //   fetchCompanyData();
-  // }, [symbol]);
+    fetchCompanyData();
+  }, [symbol]);
 
   return (
     <div>
@@ -129,15 +123,30 @@ const Stock = () => {
           ))}
         </ul>
       </div>
-{/* 
+
       {companyData && (
-        <div className="flex items-center flex-col ">
-          <h1>About {companyData?.data.quoteSummary.result[0].fundProfile.family}</h1>
-          <h2 className="w-[70%]">
-            {companyData?.data.quoteSummary.result[0].summaryProfile.longBusinessSummary}
-          </h2>
+        <div className="flex items-center flex-col mt-8 px-6 text-gray-700">
+          <h1 className="text-xl font-semibold mb-2">About {symbol}</h1>
+          <p className="text-start max-w-3xl text-sm ">
+            {companyData.data.assetProfile.longBusinessSummary}
+          </p>
+
+          <div className = "flex w-[80%] justify-evenly">
+            <div>
+              <h2>CEO</h2>
+              <h2>{companyData.data.assetProfile.companyOfficers[0].name.slice(3, companyData.data.assetProfile.companyOfficers[0].name.length)}</h2>
+            </div>
+            <div>
+              <h2>Employees</h2>
+              <h2>{companyData.data.assetProfile.fullTimeEmployees}</h2>
+            </div>
+            <div>
+              <h2>HQ</h2>
+              <h2>{companyData.data.assetProfile.city}, {companyData.data.assetProfile.state}, {companyData.data.assetProfile.country}</h2>
+            </div>
+          </div>
         </div>
-      )} */}
+      )}
     </div>
   );
 };

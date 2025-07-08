@@ -54,7 +54,7 @@ const SearchBar = () => {
   }, [search]);
 
   return (
-    <div className={focus ? "bg-gray-200 rounded-lg" : ""}>
+    <div className={focus ? "bg-gray-200 rounded-lg text-black" : ""}>
       <div className="flex flex-row border border-black rounded-lg p-2">
         <Image
           src={"/Search.svg"}

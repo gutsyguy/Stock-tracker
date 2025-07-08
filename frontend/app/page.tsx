@@ -3,7 +3,6 @@
 import AMRNChart from "./components/AMRNChart";
 import SearchBar from "./components/SearchBar";
 import { ChangeEvent, useEffect, useState } from "react";
-import { StockData } from "./interfaces/types";
 
 export default function Home() {
   return (
