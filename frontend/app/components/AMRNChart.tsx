@@ -3,7 +3,23 @@ import Chart from "chart.js/auto";
 import type { Chart as ChartJS } from "chart.js";
 import type { ChartConfiguration } from "chart.js";
 
-const AMRNChart: React.FC<any> = ({ stockData }) => {
+interface AlpacaBar {
+  c: number; // close
+  h: number; // high
+  l: number; // low
+  n: number; // number of trades
+  o: number; // open
+  t: string; // time (ISO string)
+  v: number; // volume
+  vw: number; // volume weighted avg price
+}
+
+interface AMRNChartProps {
+  stockData: any;
+  symbol: string;
+}
+
+const AMRNChart: React.FC<AMRNChartProps> = ({ stockData, symbol }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS<
     "line",
@@ -12,7 +28,9 @@ const AMRNChart: React.FC<any> = ({ stockData }) => {
   > | null>(null);
 
   // Validate that we have the required data structure
-  if (!stockData?.data?.chart?.result?.[0]) {
+  const bars: AlpacaBar[] | undefined = stockData?.data?.bars?.[symbol]?.[symbol];
+
+  if (!bars || bars.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
         <p className="text-gray-500">No chart data available for this time range</p>
@@ -20,21 +38,8 @@ const AMRNChart: React.FC<any> = ({ stockData }) => {
     );
   }
 
-  const chartResult = stockData.data.chart.result[0];
-  const timestamps = chartResult.timestamp;
-  const closingPrices = chartResult.indicators.quote[0]
-    .close as (number | null)[];
-
-  // Additional validation for required arrays
-  if (!timestamps || !closingPrices || timestamps.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-500">Invalid chart data structure</p>
-      </div>
-    );
-  }
-
-  const labels = timestamps.map((ts:any) => new Date(ts * 1000).toLocaleString());
+  const labels = bars.map((bar) => new Date(bar.t).toLocaleDateString());
+  const closingPrices = bars.map((bar) => bar.c);
 
   useEffect(() => {
     if (chartInstance.current) {
@@ -91,7 +96,7 @@ const AMRNChart: React.FC<any> = ({ stockData }) => {
         labels,
         datasets: [
           {
-            label: `${chartResult.meta.symbol} Closing Price`,
+            label: `${symbol} Closing Price`,
             data: closingPrices,
             borderColor: "blue",
             backgroundColor: "rgba(0, 0, 255, 0.1)",
@@ -118,7 +123,7 @@ const AMRNChart: React.FC<any> = ({ stockData }) => {
           },
           title: {
             display: true,
-            text: `${chartResult.meta.symbol} Closing Prices Over Time`,
+            text: `${symbol} Closing Prices Over Time`,
           },
           legend: {
             display: true,
@@ -152,7 +157,7 @@ const AMRNChart: React.FC<any> = ({ stockData }) => {
         chartInstance.current = null;
       }
     };
-  }, [labels, closingPrices, chartResult.meta.symbol]);
+  }, [labels, closingPrices, symbol]);
 
   return (
     <div>
