@@ -1,72 +1,92 @@
-// File: /app/api/getStock/route.ts
 import { AlpacaBar, AlpacaStockDataResponse } from "@/app/interfaces/types"
 import { NextRequest, NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
-// Map UI intervals to Alpaca timeframes
-const INTERVAL_MAP: Record<string, string> = {
-  "5m": "5Min",
-  "15m": "15Min",
-  "30m": "30Min",
-  "1d": "1Day",
-  "1wk": "1Week",
-  "1mo": "1Month",
+const RESOLUTION_MAP: Record<string, string> = {
+  "1": "1Min",
+  "5": "5Min",
+  "15": "15Min",
+  "30": "30Min",
+  "60": "1Hour",
+  "D": "1Day",
 }
 
-// Map UI ranges to ISO date offsets
-const RANGE_TO_MONTHS: Record<string, number> = {
-  "1d": 0,
-  "5d": 0,
-  "1mo": 1,
-  "3mo": 3,
-  "6mo": 6,
-  "1y": 12,
-  "2y": 24,
-  "5y": 60,
-  "10y": 120,
-}
+
+const rangeIntervalToResolution: Record<string, string> = {
+  "1d_5m": "5Min",
+  "5d_15m": "15Min",
+  "1mo_1d": "1Day",
+  "3mo_1d": "1Day",
+  "6mo_1wk": "1Week",
+  "1y_1wk": "1Week",
+  "2y_1wk": "1Week",
+  "5y_1mo": "1Month",
+  "10y_1mo": "1Month",
+};
+
+const rangeToDays: Record<string, number> = {
+  "1d": 1,
+  "5d": 5,
+  "1mo": 30,
+  "3mo": 90,
+  "6mo": 180,
+  "1y": 365,
+  "2y": 730,
+  "5y": 1825,
+  "10y": 3650,
+};
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
 
   const symbol = searchParams.get("symbol") || "AAPL"
-  const range = searchParams.get("range") || "6mo"
-  const interval = searchParams.get("interval") || "1wk"
+  const range = searchParams.get("range") || "6mo";
+  const interval = searchParams.get("interval") || "1wk";
+  const resolutionKey = `${range}_${interval}`;
+  const resolution = rangeIntervalToResolution[resolutionKey] || "1Day";
 
-  // Calculate start date based on range
-  const now = new Date()
-  let startISO: string
-  if (range === "1d" || range === "5d") {
-    // For 1d and 5d, use days
-    const days = range === "1d" ? 1 : 5
-    const start = new Date(now)
-    start.setDate(now.getDate() - days)
-    startISO = start.toISOString()
+  let start: Date;
+  let end: Date = new Date();
+
+  if (range === "1d") {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(13, 30, 0, 0);
+
+    const close = new Date();
+    close.setDate(close.getDate() - 1);
+    close.setHours(20, 0, 0, 0); 
+
+    start = yesterday;
+    end = close;
   } else {
-    // For other ranges, use months
-    const months = RANGE_TO_MONTHS[range] || 6
-    const start = new Date(now)
-    start.setMonth(now.getMonth() - months)
-    startISO = start.toISOString()
+    const days = rangeToDays[range] || 180;
+    start = new Date(end);
+    start.setDate(end.getDate() - days);
   }
-  const endISO = now.toISOString()
 
-  // Map interval to Alpaca timeframe
-  const timeframe = INTERVAL_MAP[interval] || "1Day"
+  const startISO = start.toISOString();
+  const endISO = end.toISOString();
 
-  const url = `https://data.alpaca.markets/v2/stocks/bars?symbols=${symbol}&timeframe=${timeframe}&start=${startISO}&end=${endISO}&limit=1000&adjustment=raw&feed=sip&sort=asc`;
-
+  const url = `${process.env.ALPACA_URL!}/v2/stocks/bars` +
+  `?symbols=${encodeURIComponent(symbol)}` +
+  `&timeframe=${encodeURIComponent(resolution)}` +
+  `&start=${encodeURIComponent(startISO)}` +
+  `&end=${encodeURIComponent(endISO)}` +
+  `&limit=1000&adjustment=raw&feed=iex&sort=asc`;
+  
   try {
     const res = await fetch(url, {
       method: "GET",
       headers: {
         accept: "application/json",
-        "APCA-API-KEY-ID": process.env.ALPACA_API!,
-        "APCA-API-SECRET-KEY": process.env.ALPACA_SECRET!,
+          "APCA-API-KEY-ID": process.env.ALPACA_API!,
+          "APCA-API-SECRET-KEY": process.env.ALPACA_SECRET!
       },
     })
 
+    console.log(process.env.ALPACA_API)
     if (!res.ok) {
       return NextResponse.json(
         { error: "Failed to fetch data from Alpaca" },

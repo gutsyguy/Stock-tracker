@@ -1,6 +1,3 @@
-// File: /app/api/getProfile/route.ts
-
-// import { RAPIDAPI_HOST, RAPIDAPI_KEY } from '@/app/environment/environment'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
