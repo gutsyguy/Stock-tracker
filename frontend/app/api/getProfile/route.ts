@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
 
   try {
-  const quoteSummary = await yahooFinance.quoteSummary("TSLA", {
+  const quoteSummary = await yahooFinance.quoteSummary(symbol, {
     modules: ["assetProfile"],
   });
 

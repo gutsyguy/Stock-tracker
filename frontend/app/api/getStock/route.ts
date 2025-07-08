@@ -14,7 +14,7 @@ const RESOLUTION_MAP: Record<string, string> = {
 
 
 const rangeIntervalToResolution: Record<string, string> = {
-  "1d_5m": "5Min",
+  "1d_5m": "15Min",
   "5d_15m": "15Min",
   "1mo_1d": "1Day",
   "3mo_1d": "1Day",

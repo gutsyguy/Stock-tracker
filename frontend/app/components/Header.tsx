@@ -1,6 +1,7 @@
 "use client";
 
 import AuthButton from "./AuthButton";
+import SearchBar from "./SearchBar";
 
 export default function Header() {
   return (
@@ -9,6 +10,9 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <h1 className="text-xl font-bold text-gray-900">Stock Tracker</h1>
+          </div>
+          <div>
+            <SearchBar/>
           </div>
           <div className="flex items-center">
             <AuthButton />

@@ -6,6 +6,7 @@ import AMRNChart from "@/app/components/AMRNChart";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import type { AlpacaStockDataResponse } from "@/app/interfaces/types";
 import type { YahooFinanceAssetProfileResponse } from "@/app/interfaces/types";
+import SaveStock from "@/app/components/StockModal";
 
 const Stock = () => {
   const router = useRouter();
@@ -78,10 +79,12 @@ const Stock = () => {
   }, [symbol]);
 
   return (
-    <div>
+    <div className="flex">
+
+    <div className="w-[70%]">
       <div className="flex justify-center w-full mt-10">
         <div className="flex flex-col w-[50vw]">
-          <SearchBar />
+          {/* <SearchBar /> */}
         </div>
       </div>
 
@@ -147,6 +150,10 @@ const Stock = () => {
           </div>
         </div>
       )}
+    </div>
+    <div className="w-[30%]">
+      <SaveStock symbol={`${symbol}`} stockData={stockData!}/>
+    </div>
     </div>
   );
 };
