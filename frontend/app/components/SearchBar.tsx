@@ -83,8 +83,8 @@ const SearchBar = () => {
         )}
         {!isLoading && filteredData && focus && filteredData.length > 0 && (
           <ul className="absolute w-full bg-white shadow-lg rounded-b-lg">
-            {filteredData.map((item: ProcessedQuote) => (
-              <li key={item.symbol}>
+            {filteredData.map((item: ProcessedQuote, index:number) => (
+              <li key={index}>
                 <Link
                   href={`/stock/${item.symbol}`}
                   className="flex flex-row p-2 hover:bg-gray-100"
