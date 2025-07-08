@@ -4,21 +4,19 @@ import Image from "next/image";
 
 interface ProcessedQuote {
   symbol: string;
-  longname: string;
-  exchange: string;
-  type: string;
+  longname?: string;
+  shortname?: string;
+  exchange?: string;
+  type?: string;
   sector?: string;
   industry?: string;
 }
 
 const SearchBar = () => {
   const [search, setSearch] = useState<string>("");
-  const [stock, setStock] = useState<string>("");
   const [focus, setFocus] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [filteredData, setFilteredData] = useState<ProcessedQuote[] | null>(
-    null
-  );
+  const [filteredData, setFilteredData] = useState<ProcessedQuote[] | null>(null);
 
   useEffect(() => {
     if (!search) {
@@ -30,15 +28,15 @@ const SearchBar = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/autocomplete/${encodeURIComponent(search)}`
+          `/api/autocomplete?symbol=${encodeURIComponent(search)}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch");
         }
         const data = await response.json();
-        console.log("API Response:", data);
-        if (Array.isArray(data.data)) {
-          setFilteredData(data.data);
+        // Expecting: { data: { quotes: [...] } }
+        if (data.data && Array.isArray(data.data.quotes)) {
+          setFilteredData(data.data.quotes);
         } else {
           console.error("Unexpected data format:", data);
           setFilteredData(null);
@@ -92,33 +90,18 @@ const SearchBar = () => {
                   className="flex flex-row p-2 hover:bg-gray-100"
                 >
                   <h1 className="min-w-[10vw] font-semibold">{item.symbol}</h1>
-                  <h2 className="text-gray-600">{item.longname}</h2>
+                  <h2 className="text-gray-600">{item.shortname || item.longname}</h2>
                 </Link>
               </li>
             ))}
           </ul>
         )}
-        {!isLoading &&
-          (!filteredData || filteredData.length === 0) &&
-          focus &&
-          search && (
-            <div className="absolute w-full bg-white shadow-lg rounded-b-lg p-4">
-              <h1 className="text-gray-500">No results found</h1>
-            </div>
-          )}
+        {!isLoading && (!filteredData || filteredData.length === 0) && focus && search && (
+          <div className="absolute w-full bg-white shadow-lg rounded-b-lg p-4">
+            <h1 className="text-gray-500">No results found</h1>
+          </div>
+        )}
       </div>
-    </div>
-  );
-};
-
-const SearchResult = ({ item }: any, onChange: any) => {
-  return (
-    <div
-      className="flex flex-row hover:bg-gray-200"
-      onClick={() => onChange(item.symbol)}
-    >
-      <h1 className="min-w-[10vw]">{item.symbol}</h1>
-      <h2>{item.shortname}</h2>
     </div>
   );
 };

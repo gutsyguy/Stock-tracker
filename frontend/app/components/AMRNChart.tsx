@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import Chart from "chart.js/auto";
 import type { Chart as ChartJS } from "chart.js";
-import { AMRNChartProps } from "../interfaces/types";
 import type { ChartConfiguration } from "chart.js";
 
-const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
+const AMRNChart: React.FC<any> = ({ stockData }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS<
     "line",
@@ -35,7 +34,7 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData }) => {
     );
   }
 
-  const labels = timestamps.map((ts) => new Date(ts * 1000).toLocaleString());
+  const labels = timestamps.map((ts:any) => new Date(ts * 1000).toLocaleString());
 
   useEffect(() => {
     if (chartInstance.current) {
