@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
 import { AlpacaBar, AlpacaStockDataResponse } from "../interfaces/types"
+import { useAuth } from "../contexts/AuthContext"
 
 const StockModal = ({stockData, symbol }:{stockData:AlpacaStockDataResponse, symbol:string}) =>{
+    const { user } = useAuth();
     const [purchaseOption, setPurchaseOption] = useState<string>("shares")
     const [shares, setShares] = useState<string>("");
     const [dollars, setDollars] = useState<string>("");
     const [marketPrice, setMarketPrice] = useState<number>(0)
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
     
-    // setMarketPrice(stockData.data[symbol][symbol].)
     //@ts-ignore
     const bars: AlpacaBar[] | undefined = stockData?.data?.bars?.[symbol]?.[symbol];
 
@@ -25,6 +27,57 @@ const StockModal = ({stockData, symbol }:{stockData:AlpacaStockDataResponse, sym
 
     const dollarsNumber = Number(dollars);
     const sharesNumber = Number(shares);
+
+    const getFinalShares = (): number => {
+        if (purchaseOption === "dollars") {
+            return dollarsNumber / marketPrice;
+        } else {
+            return sharesNumber;
+        }
+    };
+
+    const handleCreateStock = async () => {
+        if (!user?.email) {
+            console.error("User not authenticated");
+            return;
+        }
+
+        const finalShares = getFinalShares();
+        
+        if (finalShares <= 0) {
+            console.error("Invalid shares amount");
+            return;
+        }
+
+        setIsSubmitting(true);
+        
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+            const response = await fetch(`${baseUrl}/api/stock/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    stock: {
+                        email: user.email,
+                        symbol: symbol,
+                        shares: Math.round(finalShares * 100) / 100,
+                        purchasePrice: marketPrice,
+                        currentPrice: marketPrice
+                    }
+                }),
+            });
+
+            const result = await response.text();
+            console.log("✅ Stock created:", result);
+            
+        } catch (error) {
+            console.error("❌ Error creating stock:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return(
         <div className="fixed top-0 right-0 h-full flex items-center justify-end pr-8 z-50">
@@ -96,7 +149,13 @@ const StockModal = ({stockData, symbol }:{stockData:AlpacaStockDataResponse, sym
                         }
                     </div>
                 </div>
-                <button className="mt-8 py-2 px-6 bg-blue-600 text-white rounded-lg self-center">Review Stock</button>
+                <button 
+                    className="mt-8 py-2 px-6 bg-blue-600 text-white rounded-lg self-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={handleCreateStock}
+                    disabled={isSubmitting || !user?.email}
+                >
+                    {isSubmitting ? "Creating..." : "Review Stock"}
+                </button>
             </div>
         </div>
     )

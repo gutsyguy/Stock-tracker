@@ -7,98 +7,20 @@ export interface AlpacaStockDataResponse {
 }
 
 export interface AlpacaBar {
-  t: string;     // ISO date string: "2025-07-07T08:00:00Z"
-  o: number;     // open
-  h: number;     // high
-  l: number;     // low
-  c: number;     // close
-  v: number;     // volume
-  n: number;     // number of trades
-  vw: number;    // volume-weighted average price
+  t: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+  n: number;
+  vw: number;
 }
 
-
-export interface YahooFinanceSearchResponse {
+export interface YahooFinanceAssetProfileResponse {
   data: {
-    explains: any[]; // Adjust if you know the type
-    count: number;
-    quotes: Quote[];
-    news: NewsItem[];
-    nav: any[];
-    lists: any[];
-    researchReports: any[];
-    screenerFieldResults: any[];
-    totalTime: number;
-    timeTakenForQuotes: number;
-    timeTakenForNews: number;
-    timeTakenForAlgowatchlist: number;
-    timeTakenForPredefinedScreener: number;
-    timeTakenForCrunchbase: number;
-    timeTakenForNav: number;
-    timeTakenForResearchReports: number;
-    timeTakenForScreenerField: number;
-    timeTakenForCulturalAssets: number;
-    timeTakenForSearchLists: number;
+    assetProfile: AssetProfile;
   };
-}
-
-export type Quote = YahooFinanceQuote | NonYahooFinanceQuote;
-
-export interface YahooFinanceQuote {
-  exchange: string;
-  shortname: string;
-  quoteType: string;
-  symbol: string;
-  index: string;
-  score: number;
-  typeDisp: string;
-  longname: string;
-  exchDisp: string;
-  sector?: string;
-  sectorDisp?: string;
-  industry?: string;
-  industryDisp?: string;
-  dispSecIndFlag?: boolean;
-  isYahooFinance: true;
-}
-
-export interface NonYahooFinanceQuote {
-  index: string;
-  name: string;
-  permalink: string;
-  isYahooFinance: false;
-}
-
-export interface NewsItem {
-  uuid: string;
-  title: string;
-  publisher: string;
-  link: string;
-  providerPublishTime: string; // or `Date` if you plan to parse it
-  type: string;
-  thumbnail: {
-    resolutions: Resolution[];
-  };
-}
-
-export interface Resolution {
-  url: string;
-  width: number;
-  height: number;
-  tag: string;
-}
-
-
-export interface CompanyOfficer {
-  maxAge: number;
-  name: string;
-  age?: number;
-  title: string;
-  yearBorn?: number;
-  fiscalYear: number;
-  totalPay?: number;
-  exercisedValue: number;
-  unexercisedValue: number;
 }
 
 export interface AssetProfile {
@@ -125,12 +47,48 @@ export interface AssetProfile {
   overallRisk: number;
   governanceEpochDate: string;
   compensationAsOfEpochDate: string;
-  executiveTeam: any[]; // Adjust if structure known
+  executiveTeam: any[];
   maxAge: number;
 }
 
-export interface YahooFinanceAssetProfileResponse {
-  data: {
-    assetProfile: AssetProfile;
-  };
+export interface CompanyOfficer {
+  name: string;
+  age?: number;
+  title?: string;
+  yearBorn?: number;
+  pay?: number;
+  exercisedValue?: number;
+  unexercisedValue?: number;
+}
+
+export interface YahooFinanceQuote {
+  exchange: string;
+  shortname: string;
+  quoteType: string;
+  symbol: string;
+  index: string;
+  score: number;
+  typeDisp: string;
+  longname: string;
+  exchDisp: string;
+  sector?: string;
+  sectorDisp?: string;
+  industry?: string;
+  industryDisp?: string;
+  dispSecIndFlag?: boolean;
+  isYahooFinance: true;
+}
+
+export interface ProcessedQuote {
+  symbol: string;
+  shortname?: string;
+  longname?: string;
+}
+
+export interface UserStock {
+  email: string;
+  symbol: string;
+  shares: number;
+  purchasePrice: number;
+  currentPrice: number;
 }

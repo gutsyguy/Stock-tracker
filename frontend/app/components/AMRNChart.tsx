@@ -4,22 +4,24 @@ import type { Chart as ChartJS } from "chart.js";
 import type { ChartConfiguration } from "chart.js";
 
 interface AlpacaBar {
-  c: number; // close
-  h: number; // high
-  l: number; // low
-  n: number; // number of trades
-  o: number; // open
-  t: string; // time (ISO string)
-  v: number; // volume
-  vw: number; // volume weighted avg price
+  c: number;
+  h: number;
+  l: number;
+  n: number;
+  o: number;
+  t: string;
+  v: number;
+  vw: number;
 }
 
 interface AMRNChartProps {
   stockData: any;
   symbol: string;
+  height?: number;
+  width?: number;
 }
 
-const AMRNChart: React.FC<AMRNChartProps> = ({ stockData, symbol }) => {
+const AMRNChart: React.FC<AMRNChartProps> = ({ stockData, symbol, height = 300, width = 900 }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS<
     "line",
@@ -27,7 +29,6 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData, symbol }) => {
     string
   > | null>(null);
 
-  // Validate that we have the required data structure
   const bars: AlpacaBar[] | undefined = stockData?.data?.bars?.[symbol]?.[symbol];
 
   if (!bars || bars.length === 0) {
@@ -150,7 +151,6 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData, symbol }) => {
 
     chartInstance.current = new Chart(ctx, config);
 
-    // Cleanup function
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
@@ -160,10 +160,8 @@ const AMRNChart: React.FC<AMRNChartProps> = ({ stockData, symbol }) => {
   }, [labels, closingPrices, symbol]);
 
   return (
-    <div>
-      <div style={{ width: "100%", maxWidth: "900px", margin: "0 auto" }}>
-        <canvas ref={chartRef}></canvas>
-      </div>
+    <div style={{ width: width, maxWidth: width, margin: "0 auto" }}>
+      <canvas ref={chartRef} height={height} width={width}></canvas>
     </div>
   );
 };
