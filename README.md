@@ -4,7 +4,7 @@ A modern, full-stack web application for tracking stocks, analyzing market data,
 
 ## 🚀 Live Demo
 
-[Add your deployed application URL here]
+[Site will be hosted live when I finish backend because hosting and continuously working on it is a pain]
 
 ## ✨ Key Features
 
