@@ -86,7 +86,6 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    console.log(process.env.ALPACA_API)
     if (!res.ok) {
       return NextResponse.json(
         { error: "Failed to fetch data from Alpaca" },

@@ -1,23 +1,37 @@
 import React, { useEffect, useState } from "react";
-import AMRNChart from "./AMRNChart";
 import { AlpacaStockDataResponse } from "../interfaces/types";
 import AMRNChartMini from "./AMRNChartMini";
 
 interface StockDisplayProps {
   symbol: string;
   shares: number;
-  marketPrice: number;
   purchasePrice: number;
+}
+
+export interface AlpacaRealtimeQuoteResponse {
+  data: {
+    quote: {
+      ap: number;     
+      as: number;      
+      ax: string;      
+      bp: number;      
+      bs: number;      
+      bx: string;      
+      c: string[];     
+      t: string;       
+      z: string;       
+    };
+  };
 }
 
 const StockDisplay: React.FC<StockDisplayProps> = ({
   symbol,
   shares,
-  marketPrice,
   purchasePrice,
 }) => {
   const [stockData, setStockData] = useState<AlpacaStockDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [marketPrice, setMarketPrice] = useState<null| AlpacaRealtimeQuoteResponse>(null)
 
   useEffect(() => {
     const fetchChartData = async () => {
@@ -35,18 +49,65 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
     fetchChartData();
   }, [symbol]);
 
-  // Calculate gain/loss percentage
-  const percentChange =
-    purchasePrice > 0
-      ? ((marketPrice - purchasePrice) / purchasePrice) * 100
-      : 0;
-  const isUp = percentChange >= 0;
+  useEffect(() => {
+    const fetchCurrentPrice = async () => {
+      try {
+        const res = await fetch(`/api/getStockRealtime?symbol=${symbol}`);
+        const data = await res.json();
+        setMarketPrice(data);
+      } catch (error) {
+        setMarketPrice(null);
+      }
+    };
+    fetchCurrentPrice();
+  }, [symbol]);
+
+
+  const bidPrice = marketPrice?.data.quote.bp;
+  useEffect(() => {
+    if (bidPrice == null) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/getStockRealtime?symbol=${symbol}`);
+        const data = await res.json();
+        setMarketPrice(data);
+      } catch (error) {
+        console.error(error)
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [bidPrice, symbol]);
+  
+    const validPurchasePrice = typeof purchasePrice === "number" && !isNaN(purchasePrice) && purchasePrice !== 0;
+    const validBidPrice = typeof bidPrice === "number" && !isNaN(bidPrice);
+
+    const percentChange =
+      validPurchasePrice && validBidPrice
+        ? ((bidPrice - purchasePrice) / purchasePrice) * 100
+        : 0;
+      const isUp = percentChange >= 0;
+
+  useEffect(() => {
+    if (bidPrice == null) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/getStockRealtime?symbol=${symbol}`);
+        const data = await res.json();
+        setMarketPrice(data);
+      } catch (error) {
+        console.error(error)
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [bidPrice, symbol]);
 
   return (
     <div className="bg-white text-black rounded-lg p-4 flex flex-col min-w-[250px] max-w-[320px] shadow-lg border border-gray-800">
       <div className="flex justify-between items-center mb-1">
         <span className="font-bold text-lg">{symbol}</span>
-        <span className="text-xl font-semibold">${marketPrice.toFixed(2)}</span>
+        <span className="text-xl font-semibold">{validBidPrice ? `$${bidPrice.toFixed(2)}` : "N/A"}</span>
       </div>
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-[80px] max-w-[120px] h-[32px]">
@@ -70,7 +131,9 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
           }`}
         >
           {isUp ? "+" : ""}
-          {percentChange.toFixed(2)}%
+          {validPurchasePrice && validBidPrice
+            ? `${percentChange.toFixed(2)}%`
+            : "N/A"}
         </span>
       </div>
     </div>

@@ -1,11 +1,8 @@
 "use client";
 
-import AMRNChart from "./components/AMRNChart";
-import SearchBar from "./components/SearchBar";
-import { ChangeEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import StockDisplay from "./components/StockDisplay";
-import { AlpacaStockDataResponse } from "./interfaces/types"; 
 
 export interface UserStock {
   email: string;
@@ -25,9 +22,6 @@ export default function Home() {
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
         const response = await fetch(`${baseUrl}/api/stock/all?email=${user?.email}`, {
             method: "GET",
-            // headers: {
-            //     "Content-Type": "application/json",
-            // },
         });
 
         const result = await response.json();
@@ -42,33 +36,17 @@ export default function Home() {
   getAllStocks()
   },[user])
 
-  // useEffect(() => {
-  //   const fetchCharts = async () => {
-  //     const newChartData: { [symbol: string]: AlpacaStockDataResponse } = {};
-  //     await Promise.all(
-  //       stocks.map(async (stock) => {
-  //         const res = await fetch(`/api/getStock?symbol=${stock.symbol}&range=1d&interval=5m`);
-  //         const data = await res.json();
-  //         newChartData[stock.symbol] = data;
-  //       })
-  //     );
-  //     setChartData(newChartData);
-  //   };
-  //   if (stocks.length > 0) fetchCharts();
-  // }, [stocks]);
-
   return (
     <div className="flex justify-center">
       {isAuthenticated ? (
         <div>
           <h1>Owned Stocks</h1>
           {
-            stocks.map((stock, index) => (
+            stocks.map((stock) => (
               <div key={stock.symbol}>
                 <StockDisplay
                   symbol={stock.symbol}
                   shares={stock.shares}
-                  marketPrice={stock.currentPrice}
                   purchasePrice={stock.purchasePrice}
                 />
               </div>
