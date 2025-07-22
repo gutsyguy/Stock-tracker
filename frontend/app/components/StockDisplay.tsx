@@ -121,7 +121,7 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
           )}
         </div>
         <div className="ml-2 text-sm truncate">
-          {shares.toFixed(6)} Shar...
+          {shares.toFixed(3)} Shares
         </div>
       </div>
       <div className="flex justify-end mt-1">

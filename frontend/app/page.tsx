@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import StockDisplay from "./components/StockDisplay";
+import Link from "next/link";
 
 export interface UserStock {
   email: string;
@@ -14,45 +15,44 @@ export interface UserStock {
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
-  const [stocks, setStocks] = useState<UserStock[]>([])
+  const [stocks, setStocks] = useState<UserStock[]>([]);
 
   useEffect(() => {
-    const getAllStocks = async () =>{
+    const getAllStocks = async () => {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-        const response = await fetch(`${baseUrl}/api/stock/all?email=${user?.email}`, {
+        const response = await fetch(
+          `${baseUrl}/api/stock/all?email=${user?.email}`,
+          {
             method: "GET",
-        });
+          }
+        );
 
         const result = await response.json();
         console.log("✅ Retrieved:", result);
-        
-        setStocks(result)
-        
-    } catch (error) {
+
+        setStocks(result);
+      } catch (error) {
         console.error("❌ Failed to retrieve stocks:", error);
-    } 
-  }
-  getAllStocks()
-  },[user])
+      }
+    };
+    getAllStocks();
+  }, [user]);
 
   return (
     <div className="flex justify-center">
       {isAuthenticated ? (
         <div>
           <h1>Owned Stocks</h1>
-          {
-            stocks.map((stock) => (
-              <div key={stock.symbol}>
-                <StockDisplay
-                  symbol={stock.symbol}
-                  shares={stock.shares}
-                  purchasePrice={stock.purchasePrice}
-                />
-              </div>
-            ))
-          } 
-          
+          {stocks.map((stock) => (
+            <Link href={`/stock/${stock.symbol}`} key={stock.symbol}>
+              <StockDisplay
+                symbol={stock.symbol}
+                shares={stock.shares}
+                purchasePrice={stock.purchasePrice}
+              />
+            </Link>
+          ))}
         </div>
       ) : (
         <div>Please sign in</div>

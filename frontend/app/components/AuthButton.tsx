@@ -7,31 +7,30 @@ export default function AuthButton() {
   const { user, isLoading, isAuthenticated, signIn, signOut } = useAuth();
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  
-useEffect(() => {
-  const createUser = async () => {
-    if (isAuthenticated && user) {
-      try {
-        const response = await fetch( `${baseUrl}/api/user/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: user.email, 
-          }),
-        });
+  useEffect(() => {
+    const createUser = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const response = await fetch(`${baseUrl}/api/user/create`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: user.email,
+            }),
+          });
 
-        const text = await response.text();
-        console.log("✅ Server response:", text);
-      } catch (err) {
-        console.error("❌ Error creating user:", err);
+          const text = await response.text();
+          console.log("✅ Server response:", text);
+        } catch (err) {
+          console.error("❌ Error creating user:", err);
+        }
       }
-    }
-  };
+    };
 
-  createUser();
-}, [isAuthenticated, user]);
+    createUser();
+  }, [isAuthenticated, user]);
 
   if (isLoading) {
     return (
@@ -45,15 +44,13 @@ useEffect(() => {
     return (
       <div className="flex items-center gap-4">
         {user.image && (
-          <img 
-            src={user.image} 
-            alt={user.name} 
+          <img
+            src={user.image}
+            alt={user.name}
             className="w-8 h-8 rounded-full"
           />
         )}
-        <span className="text-sm text-gray-600">
-          Welcome, {user.name}
-        </span>
+        <span className="text-sm text-gray-600">Welcome, {user.name}</span>
         <button
           onClick={() => signOut()}
           className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -90,4 +87,4 @@ useEffect(() => {
       <span className="font-medium">Sign in with Google</span>
     </button>
   );
-} 
+}

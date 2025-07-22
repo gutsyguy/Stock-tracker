@@ -16,7 +16,6 @@ public class StockController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    // Create a stock entry
     @PostMapping("/create")
     public String createStock(@RequestBody StockDTO stockDTO) {
         Stock stock = stockDTO.getStock();
@@ -35,7 +34,6 @@ public class StockController {
         return rows == 1 ? "Stock created successfully" : "Failed to create stock";
     }
 
-    // Get all stocks for a user
     @GetMapping("/all")
     public List<Stock> getAllStocks(@RequestParam String email) {
         String sql = "SELECT * FROM stock_purchases WHERE user_email = ?";
@@ -43,7 +41,6 @@ public class StockController {
         return jdbcTemplate.query(sql, new Object[]{email}, new StockRowMapper());
     }
 
-    // Get a single stock by email and symbol
     @GetMapping("/get")
     public Stock getStockBySymbol(@RequestParam String email, @RequestParam String symbol) {
         String sql = "SELECT * FROM stock_purchases WHERE user_email = ? AND stock_symbol = ?";
@@ -51,14 +48,38 @@ public class StockController {
         return jdbcTemplate.queryForObject(sql, new Object[]{email, symbol}, new StockRowMapper());
     }
 
-    // RowMapper to map ResultSet to Stock object
+    @PutMapping("/update")
+    public String updateShares(@RequestBody StockDTO stockDTO) {
+        Stock stock = stockDTO.getStock();
+
+        String sql = "UPDATE stock_purchases SET shares = ? " +
+                "WHERE user_email = ? AND stock_symbol = ?";
+
+        int rows = jdbcTemplate.update(sql,
+                stock.getShares(),
+                stock.getEmail(),
+                stock.getSymbol()
+        );
+
+        return rows == 1 ? "Shares updated successfully" : "Failed to update shares";
+    }
+
+    @DeleteMapping("/delete")
+    public String deleteStock(@RequestParam String email, @RequestParam String symbol) {
+        String sql = "DELETE FROM stock_purchases WHERE user_email = ? AND stock_symbol = ?";
+
+        int rows = jdbcTemplate.update(sql, email, symbol);
+
+        return rows == 1 ? "Stock deleted successfully" : "Failed to delete stock";
+    }
+
     private static class StockRowMapper implements RowMapper<Stock> {
         @Override
         public Stock mapRow(ResultSet rs, int rowNum) throws SQLException {
             Stock stock = new Stock();
             stock.setEmail(rs.getString("user_email"));
             stock.setSymbol(rs.getString("stock_symbol"));
-            stock.setShares(rs.getInt("shares"));
+            stock.setShares(rs.getFloat("shares"));
             stock.setPurchasePrice(rs.getFloat("purchase_price"));
             stock.setCurrentPrice(rs.getFloat("current_price"));
             return stock;

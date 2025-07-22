@@ -4,7 +4,7 @@ public class Stock {
 
     private String email;
     private String symbol;
-    private Integer shares;
+    private Float shares;
     private Float purchasePrice;
     private Float currentPrice;
 
@@ -12,7 +12,7 @@ public class Stock {
     public Stock() {}
 
     // All-args constructor
-    public Stock(String email, String symbol, Integer shares, Float purchasePrice, Float currentPrice) {
+    public Stock(String email, String symbol, Float shares, Float purchasePrice, Float currentPrice) {
         this.email = email;
         this.symbol = symbol;
         this.shares = shares;
@@ -36,11 +36,11 @@ public class Stock {
         this.symbol = symbol;
     }
 
-    public Integer getShares() {
+    public Float getShares() {
         return shares;
     }
 
-    public void setShares(Integer shares) {
+    public void setShares(Float shares) {
         this.shares = shares;
     }
 
