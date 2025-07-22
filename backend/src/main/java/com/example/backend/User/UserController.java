@@ -19,7 +19,7 @@ public class UserController {
 
             jdbcTemplate.update(sql, email);
 
-            return "User created or already created";
+            return "";
         }
         catch (Exception err){
             err.printStackTrace();

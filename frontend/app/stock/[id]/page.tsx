@@ -9,6 +9,7 @@ import type { UserStock } from "@/app/page";
 import { useAuth } from "@/app/contexts/AuthContext";
 import SaveStock from "@/app/components/StockModal";
 import { AlpacaRealtimeQuoteResponse } from "@/app/components/StockDisplay";
+import StockModal from "@/app/components/StockModal";
 
 const Stock = () => {
   const router = useRouter();
@@ -276,8 +277,9 @@ const Stock = () => {
           </div>
         )}
       </div>
+
       <div className="w-[30%]">
-        <SaveStock symbol={`${symbol}`} stockData={stockData!} />
+        <StockModal symbol={`${symbol}`} stockData={stockData!} />
       </div>
     </div>
   );
