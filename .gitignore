@@ -5,4 +5,5 @@
 .env
 
 
+/backend1/*
 # backend/src/main/resources/application.properties
