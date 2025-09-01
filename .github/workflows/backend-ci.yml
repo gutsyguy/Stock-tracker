@@ -33,6 +33,10 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew clean build
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/testdb
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
