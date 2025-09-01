@@ -242,7 +242,7 @@ const StockModal = ({
   };
 
   return (
-    <div className="fixed top-0 right-0 h-full flex items-center justify-end pr-8 z-50 w-[100vw]">
+    <div className="fixed top-0 right-0 h-full flex items-center justify-end pr-8 z-50">
       <div className="bg-white shadow-2xl rounded-lg h-[70vh] flex flex-col justify-evenly p-8">
         <div className="flex justify-evenly">
           <h1

@@ -7,7 +7,6 @@ import type { AlpacaStockDataResponse } from "@/app/interfaces/types";
 import type { YahooFinanceAssetProfileResponse } from "@/app/interfaces/types";
 import type { UserStock } from "@/app/page";
 import { useAuth } from "@/app/contexts/AuthContext";
-import SaveStock from "@/app/components/StockModal";
 import { AlpacaRealtimeQuoteResponse } from "@/app/components/StockDisplay";
 import StockModal from "@/app/components/StockModal";
 
