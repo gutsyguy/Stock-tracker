@@ -2,25 +2,21 @@ package adapter
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gutsyguy/backend/handler"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Router struct{
-	*gin.Engine
-}
-
-func NewRouter(){
+func NewRouter(pool *pgxpool.Pool) *gin.Engine {
 	router := gin.Default()
 
-	apiGroup := router.Group("api")
+	api := router.Group("/api")
 	{
-		businessGroup := apiGroup.Group("/business")
+		user := api.Group("/user")
 		{
-			businessGroup.GET("")
-			businessGroup.GET(":id")
-			businessGroup.GET("name/:name")
-			businessGroup.POST("")
-			businessGroup.PUT(":id")
-			businessGroup.DELETE(":id")
+			user.POST("", handler.CreateUser(pool))
+			user.GET("/:id", handler.GetUser(pool))
 		}
 	}
+
+	return router
 }
