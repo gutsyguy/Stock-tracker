@@ -1,0 +1,29 @@
+# ---------- Build Stage ----------
+FROM golang:1.22 AS builder
+
+# Set working directory inside container
+WORKDIR /app
+
+# Copy go mod and sum first (for caching dependencies)
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
+
+# Copy the rest of the backend source
+COPY backend/ .
+
+# Build the Go binary
+RUN go build -o app ./cmd/server
+
+# ---------- Runtime Stage ----------
+FROM gcr.io/distroless/base-debian12 AS final
+
+WORKDIR /root/
+
+# Copy binary from builder
+COPY --from=builder /app/app .
+
+# Expose the port your Gin app listens on (default 8080)
+EXPOSE 8080
+
+# Run the app
+CMD ["./app"]
