@@ -9,6 +9,7 @@ import type { UserStock } from "@/app/page";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AlpacaRealtimeQuoteResponse } from "@/app/components/StockDisplay";
 import StockModal from "@/app/components/StockModal";
+import { apiClient } from "@/app/services/api";
 
 const Stock = () => {
   const router = useRouter();
@@ -41,8 +42,6 @@ const Stock = () => {
   const [userStock, setUserStock] = useState<null | UserStock>(null);
   const [marketPrice, setMarketPrice] =
     useState<null | AlpacaRealtimeQuoteResponse>(null);
-
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   useEffect(() => {
     const fetchStockData = async () => {
@@ -107,29 +106,66 @@ const Stock = () => {
 
   useEffect(() => {
     const getUserStock = async () => {
+      if (!user?.id) {
+        setUserStock(null);
+        return;
+      }
+
       try {
-        const response = await fetch(
-          `${baseUrl}/api/stock/get?email=${user?.email}&symbol=${symbol}`,
-          { method: "GET" }
+        // First, get the stock by symbol to get the stock ID
+        const stockResponse = await apiClient.getStockBySymbol(symbol as string);
+        if (stockResponse.error || !stockResponse.data) {
+          setUserStock(null);
+          return;
+        }
+
+        // Then get user transactions for this stock
+        const transactionsResponse = await apiClient.getUserTransactions(user.id);
+        if (transactionsResponse.error || !transactionsResponse.data) {
+          setUserStock(null);
+          return;
+        }
+
+        // Filter transactions for this specific stock
+        const stockTransactions = transactionsResponse.data.transactions.filter(
+          t => t.stockId === stockResponse.data!.id
         );
 
-        if (!response.ok) {
-          console.error("❌ HTTP error:", response.status);
+        if (stockTransactions.length === 0) {
           setUserStock(null);
           return;
         }
 
-        const result = await response.json();
+        // Calculate net quantity and average price
+        let totalQuantity = 0;
+        let totalCost = 0;
 
-        // Optional: check if result is valid object
-        if (!result || Object.keys(result).length === 0) {
+        for (const transaction of stockTransactions) {
+          if (transaction.transactionType === 'BUY') {
+            totalQuantity += transaction.quantity;
+            totalCost += transaction.quantity * transaction.price;
+          } else if (transaction.transactionType === 'SELL') {
+            totalQuantity -= transaction.quantity;
+            totalCost -= transaction.quantity * transaction.price;
+          }
+        }
+
+        if (totalQuantity <= 0) {
           setUserStock(null);
           return;
         }
 
-        setUserStock(result);
+        const averagePrice = totalCost / totalQuantity;
+
+        setUserStock({
+          email: user.email || '',
+          symbol: symbol as string,
+          shares: totalQuantity,
+          purchasePrice: averagePrice,
+          currentPrice: 0, // Will be updated by market price
+        });
       } catch (error) {
-        console.error("❌ Failed to retrieve stocks:", error);
+        console.error("❌ Failed to retrieve user stock:", error);
         setUserStock(null);
       }
     };
@@ -138,8 +174,8 @@ const Stock = () => {
   }, [user, symbol]);
 
   return (
-    <div className="flex">
-      <div className="w-[70%] mt-10">
+    <div className="flex justify-center">
+      <div className="mt-10">
         {isLoading && (
           <div className="flex justify-center items-center h-64">
             <p className="text-gray-500">Loading chart data...</p>
@@ -250,7 +286,7 @@ const Stock = () => {
               {companyData.data.assetProfile.longBusinessSummary}
             </p>
 
-            <div className="flex w-[80%] justify-evenly">
+            <div className="flex w-[80%] justify-evenly py-6">
               <div>
                 <h2>CEO</h2>
                 <h2>
@@ -277,9 +313,9 @@ const Stock = () => {
         )}
       </div>
 
-      <div className="w-[30%]">
+      {/* <div className="w-[30%]">
         <StockModal symbol={`${symbol}`} stockData={stockData!} />
-      </div>
+      </div> */}
     </div>
   );
 };

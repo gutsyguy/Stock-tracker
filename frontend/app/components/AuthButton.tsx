@@ -11,7 +11,7 @@ export default function AuthButton() {
     const createUser = async () => {
       if (isAuthenticated && user) {
         try {
-          const response = await fetch(`${baseUrl}/api/user/create`, {
+          const response = await fetch(`${baseUrl}/api/users`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
