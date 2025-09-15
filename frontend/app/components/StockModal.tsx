@@ -38,30 +38,68 @@ const StockModal = ({
 
   useEffect(() => {
     const getUserStock = async () => {
+      if (!user?.id) {
+        setUserStock(null);
+        return;
+      }
+
       try {
-        const response = await fetch(
-          `${baseUrl}/api/stock/get?email=${user?.email}&symbol=${symbol}`,
-          { method: "GET" }
+        // First, get the stock by symbol to get the stock ID
+        const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
+        if (!stockResponse.ok) {
+          setUserStock(null);
+          return;
+        }
+        const stockData = await stockResponse.json();
+
+        // Then get user transactions for this stock
+        const transactionsResponse = await fetch(`${baseUrl}/api/user/${user.id}/transactions`);
+        if (!transactionsResponse.ok) {
+          setUserStock(null);
+          return;
+        }
+        const transactionsData = await transactionsResponse.json();
+
+        // Filter transactions for this specific stock
+        const stockTransactions = transactionsData.data.transactions.filter(
+          (t: any) => t.stockId === stockData.data.id
         );
 
-        if (!response.ok) {
-          console.error("❌ HTTP error:", response.status);
+        if (stockTransactions.length === 0) {
           setUserStock(null);
           return;
         }
 
-        const result = await response.json();
+        // Calculate net quantity and average price
+        let totalQuantity = 0;
+        let totalCost = 0;
 
-        // Optional: check if result is valid object
-        if (!result || Object.keys(result).length === 0) {
+        for (const transaction of stockTransactions) {
+          if (transaction.transactionType === 'BUY') {
+            totalQuantity += transaction.quantity;
+            totalCost += transaction.quantity * transaction.price;
+          } else if (transaction.transactionType === 'SELL') {
+            totalQuantity -= transaction.quantity;
+            totalCost -= transaction.quantity * transaction.price;
+          }
+        }
+
+        if (totalQuantity <= 0) {
           setUserStock(null);
           return;
         }
-        console.log(result);
 
-        setUserStock(result);
+        const averagePrice = totalCost / totalQuantity;
+
+        setUserStock({
+          email: user.email || '',
+          symbol: symbol,
+          shares: totalQuantity,
+          purchasePrice: averagePrice,
+          currentPrice: 0, // Will be updated by market price
+        });
       } catch (error) {
-        console.error("❌ Failed to retrieve stocks:", error);
+        console.error("❌ Failed to retrieve user stock:", error);
         setUserStock(null);
       }
     };
@@ -83,156 +121,137 @@ const StockModal = ({
       return sharesNumber;
     }
   };
-
   const sellAllShares = async () => {
-    if (!user?.email || !userStock) {
-      console.error("User not authenticated or no stock to delete");
+    if (!user?.id || !userStock) {
+      console.error("User not authenticated or no stock to sell");
       return;
     }
-
+  
     setIsSubmitting(true);
-
+  
     try {
-      const response = await fetch(
-        `${baseUrl}/api/stock/delete?email=${user.email}&symbol=${symbol}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const result = await response.text();
-      console.log("✅ All shares sold:", result);
-      setUserStock(null);
+      const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
+      if (!stockResponse.ok) throw new Error("Failed to fetch stock");
+      const stock = await stockResponse.json();
+  
+      const response = await fetch(`${baseUrl}/api/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          stockId: stock.data.id,
+          transactionType: "SELL",
+          quantity: userStock.shares,
+          price: marketPrice,
+        }),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        console.log("✅ All shares sold:", result);
+        window.location.reload();
+      } else {
+        console.error("❌ Error selling all shares:", result.error);
+      }
     } catch (error) {
-      console.error("❌ Error deleting stock:", error);
+      console.error("❌ Error selling all shares:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleSellStock = async () => {
-    if (!user?.email) {
+    if (!user?.id) {
       console.error("User not authenticated");
       return;
     }
-
+  
     const finalShares = getFinalShares();
-
     if (finalShares <= 0) {
       console.error("Invalid shares amount");
       return;
     }
-
+  
+    if (userStock && finalShares > userStock.shares) {
+      console.error("Cannot sell more shares than you own");
+      return;
+    }
+  
     setIsSubmitting(true);
-
-    if (userStock && finalShares < userStock.shares) {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-        const response = await fetch(`${baseUrl}/api/stock/update`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            stock: {
-              email: user.email,
-              symbol: symbol,
-              shares: userStock.shares - finalShares,
-            },
-          }),
-        });
-
-        const result = await response.text();
-        console.log("✅ Stock updated:", result);
-      } catch (error) {
-        console.error("❌ Error updating stock:", error);
-      } finally {
-        setIsSubmitting(false);
+  
+    try {
+      const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
+      if (!stockResponse.ok) throw new Error("Failed to fetch stock");
+      const stock = await stockResponse.json();
+  
+      const response = await fetch(`${baseUrl}/api/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          stockId: stock.data.id,
+          transactionType: "SELL",
+          quantity: Math.round(finalShares * 100) / 100,
+          price: marketPrice,
+        }),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        console.log("✅ Transaction created:", result);
+        window.location.reload();
+      } else {
+        console.error("❌ Error creating transaction:", result.error);
       }
-    } else {
-      try {
-        const response = await fetch(
-          `${baseUrl}/api/stock/delete?email=${user?.email}&symbol=${symbol}"`,
-          {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const result = await response.text();
-        console.log("✅ Stock updated:", result);
-      } catch (error) {
-        console.error("❌ Error updating stock:", error);
-      } finally {
-        setIsSubmitting(false);
-      }
+    } catch (error) {
+      console.error("❌ Error selling stock:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleCreateStock = async () => {
-    if (!user?.email) {
+    if (!user?.id) {
       console.error("User not authenticated");
       return;
     }
-
+  
     const finalShares = getFinalShares();
-
     if (finalShares <= 0) {
       console.error("Invalid shares amount");
       return;
     }
-
+  
     setIsSubmitting(true);
-
+  
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-      if (userStock) {
-        // Update: add new shares to existing
-        const updatedShares =
-          Math.round((userStock.shares + finalShares) * 100) / 100;
-
-        const response = await fetch(`${baseUrl}/api/stock/update`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            stock: {
-              email: user.email,
-              symbol: symbol,
-              shares: updatedShares,
-            },
-          }),
-        });
-
-        const result = await response.text();
-        console.log("✅ Stock updated:", result);
+      // ✅ Fetch stock by symbol to get UUID
+      const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
+      if (!stockResponse.ok) throw new Error("Failed to fetch stock");
+      const stock = await stockResponse.json();
+  
+      // ✅ Use stockId instead of symbol
+      const response = await fetch(`${baseUrl}/api/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id, // must be UUID
+          stockId: stock.data.id, // must be UUID
+          transactionType: "BUY",
+          quantity: Math.round(finalShares * 100) / 100,
+          price: marketPrice,
+        }),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        console.log("✅ Transaction created:", result);
+        window.location.reload();
       } else {
-        // Create: new stock entry
-        const response = await fetch(`${baseUrl}/api/stock/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            stock: {
-              email: user.email,
-              symbol: symbol,
-              shares: Math.round(finalShares * 100) / 100,
-              purchasePrice: marketPrice,
-              currentPrice: marketPrice,
-            },
-          }),
-        });
-
-        const result = await response.text();
-        console.log("✅ Stock created:", result);
+        console.error("❌ Error creating transaction:", result.error);
       }
     } catch (error) {
       console.error("❌ Error saving stock:", error);
@@ -242,7 +261,7 @@ const StockModal = ({
   };
 
   return (
-    <div className="fixed top-0 right-0 h-full flex items-center justify-end pr-8 z-50">
+    <div className="fixed top-0 right-0 h-full text-black flex items-center justify-end pr-8 z-50">
       <div className="bg-white shadow-2xl rounded-lg h-[70vh] flex flex-col justify-evenly p-8">
         <div className="flex justify-evenly">
           <h1
