@@ -9,7 +9,6 @@ import type { UserStock } from "@/app/page";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AlpacaRealtimeQuoteResponse } from "@/app/components/StockDisplay";
 import StockModal from "@/app/components/StockModal";
-import { apiClient } from "@/app/services/api";
 
 const Stock = () => {
   const router = useRouter();
@@ -42,6 +41,8 @@ const Stock = () => {
   const [userStock, setUserStock] = useState<null | UserStock>(null);
   const [marketPrice, setMarketPrice] =
     useState<null | AlpacaRealtimeQuoteResponse>(null);
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   useEffect(() => {
     const fetchStockData = async () => {
@@ -106,66 +107,29 @@ const Stock = () => {
 
   useEffect(() => {
     const getUserStock = async () => {
-      if (!user?.id) {
-        setUserStock(null);
-        return;
-      }
-
       try {
-        // First, get the stock by symbol to get the stock ID
-        const stockResponse = await apiClient.getStockBySymbol(symbol as string);
-        if (stockResponse.error || !stockResponse.data) {
-          setUserStock(null);
-          return;
-        }
-
-        // Then get user transactions for this stock
-        const transactionsResponse = await apiClient.getUserTransactions(user.id);
-        if (transactionsResponse.error || !transactionsResponse.data) {
-          setUserStock(null);
-          return;
-        }
-
-        // Filter transactions for this specific stock
-        const stockTransactions = transactionsResponse.data.transactions.filter(
-          t => t.stockId === stockResponse.data!.id
+        const response = await fetch(
+          `${baseUrl}/api/stock/get?email=${user?.email}&symbol=${symbol}`,
+          { method: "GET" }
         );
 
-        if (stockTransactions.length === 0) {
+        if (!response.ok) {
+          console.error("❌ HTTP error:", response.status);
           setUserStock(null);
           return;
         }
 
-        // Calculate net quantity and average price
-        let totalQuantity = 0;
-        let totalCost = 0;
+        const result = await response.json();
 
-        for (const transaction of stockTransactions) {
-          if (transaction.transactionType === 'BUY') {
-            totalQuantity += transaction.quantity;
-            totalCost += transaction.quantity * transaction.price;
-          } else if (transaction.transactionType === 'SELL') {
-            totalQuantity -= transaction.quantity;
-            totalCost -= transaction.quantity * transaction.price;
-          }
-        }
-
-        if (totalQuantity <= 0) {
+        // Optional: check if result is valid object
+        if (!result || Object.keys(result).length === 0) {
           setUserStock(null);
           return;
         }
 
-        const averagePrice = totalCost / totalQuantity;
-
-        setUserStock({
-          email: user.email || '',
-          symbol: symbol as string,
-          shares: totalQuantity,
-          purchasePrice: averagePrice,
-          currentPrice: 0, // Will be updated by market price
-        });
+        setUserStock(result);
       } catch (error) {
-        console.error("❌ Failed to retrieve user stock:", error);
+        console.error("❌ Failed to retrieve stocks:", error);
         setUserStock(null);
       }
     };
@@ -286,7 +250,7 @@ const Stock = () => {
               {companyData.data.assetProfile.longBusinessSummary}
             </p>
 
-            <div className="flex w-[80%] justify-evenly py-6">
+            <div className="flex w-[80%] justify-evenly py-4">
               <div>
                 <h2>CEO</h2>
                 <h2>
@@ -312,10 +276,6 @@ const Stock = () => {
           </div>
         )}
       </div>
-
-      {/* <div className="w-[30%]">
-        <StockModal symbol={`${symbol}`} stockData={stockData!} />
-      </div> */}
     </div>
   );
 };

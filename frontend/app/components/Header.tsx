@@ -17,9 +17,6 @@ export default function Header() {
           <div>
             <SearchBar/>
           </div>
-          <div className="flex items-center">
-            <AuthButton />
-          </div>
         </div>
       </div>
     </header>

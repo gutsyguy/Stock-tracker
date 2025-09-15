@@ -1,36 +1,9 @@
 "use client";
 
 import { useAuth } from "../contexts/AuthContext";
-import { useEffect } from "react";
 
 export default function AuthButton() {
   const { user, isLoading, isAuthenticated, signIn, signOut } = useAuth();
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  useEffect(() => {
-    const createUser = async () => {
-      if (isAuthenticated && user) {
-        try {
-          const response = await fetch(`${baseUrl}/api/users`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: user.email,
-            }),
-          });
-
-          const text = await response.text();
-          console.log("✅ Server response:", text);
-        } catch (err) {
-          console.error("❌ Error creating user:", err);
-        }
-      }
-    };
-
-    createUser();
-  }, [isAuthenticated, user]);
 
   if (isLoading) {
     return (

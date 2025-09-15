@@ -37,67 +37,22 @@ const StockModal = ({
   const [optionSelection, setOptionSelection] = useState<string>("save");
 
   useEffect(() => {
-    const getUserStock = async () => {
-      if (!user?.id) {
+    const getUserStock = () => {
+      if (!user?.email) {
         setUserStock(null);
         return;
       }
 
       try {
-        // First, get the stock by symbol to get the stock ID
-        const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
-        if (!stockResponse.ok) {
+        // Load user stock from localStorage
+        const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
+        if (savedPortfolio) {
+          const portfolio = JSON.parse(savedPortfolio);
+          const stock = portfolio.find((s: UserStock) => s.symbol === symbol);
+          setUserStock(stock || null);
+        } else {
           setUserStock(null);
-          return;
         }
-        const stockData = await stockResponse.json();
-
-        // Then get user transactions for this stock
-        const transactionsResponse = await fetch(`${baseUrl}/api/user/${user.id}/transactions`);
-        if (!transactionsResponse.ok) {
-          setUserStock(null);
-          return;
-        }
-        const transactionsData = await transactionsResponse.json();
-
-        // Filter transactions for this specific stock
-        const stockTransactions = transactionsData.data.transactions.filter(
-          (t: any) => t.stockId === stockData.data.id
-        );
-
-        if (stockTransactions.length === 0) {
-          setUserStock(null);
-          return;
-        }
-
-        // Calculate net quantity and average price
-        let totalQuantity = 0;
-        let totalCost = 0;
-
-        for (const transaction of stockTransactions) {
-          if (transaction.transactionType === 'BUY') {
-            totalQuantity += transaction.quantity;
-            totalCost += transaction.quantity * transaction.price;
-          } else if (transaction.transactionType === 'SELL') {
-            totalQuantity -= transaction.quantity;
-            totalCost -= transaction.quantity * transaction.price;
-          }
-        }
-
-        if (totalQuantity <= 0) {
-          setUserStock(null);
-          return;
-        }
-
-        const averagePrice = totalCost / totalQuantity;
-
-        setUserStock({
-          email: user.email || '',
-          symbol: symbol,
-          shares: totalQuantity,
-          purchasePrice: averagePrice,
-          currentPrice: 0, // Will be updated by market price
-        });
       } catch (error) {
         console.error("❌ Failed to retrieve user stock:", error);
         setUserStock(null);
@@ -121,38 +76,26 @@ const StockModal = ({
       return sharesNumber;
     }
   };
+
   const sellAllShares = async () => {
-    if (!user?.id || !userStock) {
+    if (!user?.email || !userStock) {
       console.error("User not authenticated or no stock to sell");
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
-      const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
-      if (!stockResponse.ok) throw new Error("Failed to fetch stock");
-      const stock = await stockResponse.json();
-  
-      const response = await fetch(`${baseUrl}/api/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          stockId: stock.data.id,
-          transactionType: "SELL",
-          quantity: userStock.shares,
-          price: marketPrice,
-        }),
-      });
-  
-      const result = await response.json();
-  
-      if (response.ok) {
-        console.log("✅ All shares sold:", result);
+      // Remove stock from localStorage portfolio
+      const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
+      if (savedPortfolio) {
+        const portfolio = JSON.parse(savedPortfolio);
+        const updatedPortfolio = portfolio.filter((s: UserStock) => s.symbol !== symbol);
+        localStorage.setItem(`portfolio_${user.email}`, JSON.stringify(updatedPortfolio));
+        console.log("✅ All shares sold");
+        setUserStock(null);
+        // Refresh the page to update the UI
         window.location.reload();
-      } else {
-        console.error("❌ Error selling all shares:", result.error);
       }
     } catch (error) {
       console.error("❌ Error selling all shares:", error);
@@ -162,48 +105,46 @@ const StockModal = ({
   };
 
   const handleSellStock = async () => {
-    if (!user?.id) {
+    if (!user?.email) {
       console.error("User not authenticated");
       return;
     }
-  
+
     const finalShares = getFinalShares();
+
     if (finalShares <= 0) {
       console.error("Invalid shares amount");
       return;
     }
-  
+
     if (userStock && finalShares > userStock.shares) {
       console.error("Cannot sell more shares than you own");
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
-      const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
-      if (!stockResponse.ok) throw new Error("Failed to fetch stock");
-      const stock = await stockResponse.json();
-  
-      const response = await fetch(`${baseUrl}/api/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          stockId: stock.data.id,
-          transactionType: "SELL",
-          quantity: Math.round(finalShares * 100) / 100,
-          price: marketPrice,
-        }),
-      });
-  
-      const result = await response.json();
-  
-      if (response.ok) {
-        console.log("✅ Transaction created:", result);
-        window.location.reload();
-      } else {
-        console.error("❌ Error creating transaction:", result.error);
+      // Update portfolio in localStorage
+      const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
+      if (savedPortfolio) {
+        const portfolio = JSON.parse(savedPortfolio);
+        const stockIndex = portfolio.findIndex((s: UserStock) => s.symbol === symbol);
+        
+        if (stockIndex !== -1) {
+          const remainingShares = portfolio[stockIndex].shares - finalShares;
+          if (remainingShares <= 0) {
+            // Remove stock completely
+            portfolio.splice(stockIndex, 1);
+          } else {
+            // Update shares
+            portfolio[stockIndex].shares = remainingShares;
+          }
+          localStorage.setItem(`portfolio_${user.email}`, JSON.stringify(portfolio));
+          console.log("✅ Stock sold");
+          // Refresh the page to update the UI
+          window.location.reload();
+        }
       }
     } catch (error) {
       console.error("❌ Error selling stock:", error);
@@ -213,46 +154,54 @@ const StockModal = ({
   };
 
   const handleCreateStock = async () => {
-    if (!user?.id) {
+    if (!user?.email) {
       console.error("User not authenticated");
       return;
     }
-  
+
     const finalShares = getFinalShares();
+
     if (finalShares <= 0) {
       console.error("Invalid shares amount");
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
-      // ✅ Fetch stock by symbol to get UUID
-      const stockResponse = await fetch(`${baseUrl}/api/stocks/symbol/${symbol}`);
-      if (!stockResponse.ok) throw new Error("Failed to fetch stock");
-      const stock = await stockResponse.json();
-  
-      // ✅ Use stockId instead of symbol
-      const response = await fetch(`${baseUrl}/api/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id, // must be UUID
-          stockId: stock.data.id, // must be UUID
-          transactionType: "BUY",
-          quantity: Math.round(finalShares * 100) / 100,
-          price: marketPrice,
-        }),
-      });
-  
-      const result = await response.json();
-  
-      if (response.ok) {
-        console.log("✅ Transaction created:", result);
-        window.location.reload();
+      // Update portfolio in localStorage
+      const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
+      let portfolio = savedPortfolio ? JSON.parse(savedPortfolio) : [];
+      
+      const existingStockIndex = portfolio.findIndex((s: UserStock) => s.symbol === symbol);
+      
+      if (existingStockIndex !== -1) {
+        // Update existing stock (add shares and recalculate average price)
+        const existingStock = portfolio[existingStockIndex];
+        const totalShares = existingStock.shares + finalShares;
+        const totalCost = (existingStock.shares * existingStock.purchasePrice) + (finalShares * marketPrice);
+        const averagePrice = totalCost / totalShares;
+        
+        portfolio[existingStockIndex] = {
+          ...existingStock,
+          shares: totalShares,
+          purchasePrice: averagePrice,
+        };
       } else {
-        console.error("❌ Error creating transaction:", result.error);
+        // Add new stock
+        portfolio.push({
+          email: user.email,
+          symbol: symbol,
+          shares: Math.round(finalShares * 100) / 100,
+          purchasePrice: marketPrice,
+          currentPrice: marketPrice,
+        });
       }
+      
+      localStorage.setItem(`portfolio_${user.email}`, JSON.stringify(portfolio));
+      console.log("✅ Stock added to portfolio");
+      // Refresh the page to update the UI
+      window.location.reload();
     } catch (error) {
       console.error("❌ Error saving stock:", error);
     } finally {
