@@ -38,31 +38,6 @@ func CreateUser(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func GetStockBySymbol(pool *pgxpool.Pool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		symbol := c.Param("symbol")
-
-		var stock model.Stock
-		err := pool.QueryRow(c.Request.Context(),
-			`SELECT id, symbol, name, created_at
-			 FROM stocks WHERE symbol = $1`,
-			symbol,
-		).Scan(&stock.ID, &stock.Symbol, &stock.Name, &stock.CreatedAt)
-
-		if errors.Is(err, pgx.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "stock not found"})
-			return
-		}
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"data": stock})
-	}
-}
-
-
 func GetUserByID(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
