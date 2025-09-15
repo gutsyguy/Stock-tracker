@@ -1,0 +1,12 @@
+{
+    "build": {
+      "builder": "NIXPACKS",
+      "path": "backend"
+    },
+    "deploy": {
+      "startCommand": "./server",
+      "buildCommand": "go build -o server .",
+      "rootDir": "backend-gin"
+    }
+  }
+  

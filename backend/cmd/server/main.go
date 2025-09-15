@@ -3,6 +3,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ import (
 
 func main() {
 	// Load configuration
+	r := gin.Default()
 	cfg := config.Load()
 
 	// Initialize database connection
