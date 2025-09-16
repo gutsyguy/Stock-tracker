@@ -21,12 +21,9 @@ const StockModal = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [userStock, setUserStock] = useState<null | UserStock>(null);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  //@ts-ignore
   const bars: AlpacaBar[] | undefined =
-    //@ts-ignore
-    stockData?.data?.bars?.[symbol]?.[symbol];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (stockData?.data?.bars as any)?.[symbol]?.[symbol];
 
   useEffect(() => {
     if (bars && bars.length > 0) {
@@ -171,7 +168,7 @@ const StockModal = ({
     try {
       // Update portfolio in localStorage
       const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
-      let portfolio = savedPortfolio ? JSON.parse(savedPortfolio) : [];
+      const portfolio = savedPortfolio ? JSON.parse(savedPortfolio) : [];
       
       const existingStockIndex = portfolio.findIndex((s: UserStock) => s.symbol === symbol);
       
@@ -262,7 +259,7 @@ const StockModal = ({
                   name=""
                   value={purchaseOption}
                   id=""
-                  onChange={(e: any) => setPurchaseOption(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPurchaseOption(e.target.value)}
                 >
                   <option value="shares">Shares</option>
                   <option value="dollars">Dollars</option>
@@ -336,7 +333,7 @@ const StockModal = ({
                   name=""
                   value={purchaseOption}
                   id=""
-                  onChange={(e: any) => setPurchaseOption(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPurchaseOption(e.target.value)}
                 >
                   <option value="shares">Shares</option>
                   <option value="dollars">Dollars</option>

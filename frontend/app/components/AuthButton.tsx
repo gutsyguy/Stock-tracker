@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "../contexts/AuthContext";
+import Image from "next/image";
 
 export default function AuthButton() {
   const { user, isLoading, isAuthenticated, signIn, signOut } = useAuth();
@@ -17,9 +18,11 @@ export default function AuthButton() {
     return (
       <div className="flex items-center gap-4">
         {user.image && (
-          <img
+          <Image
             src={user.image}
-            alt={user.name}
+            alt={user.name || "User"}
+            width={32}
+            height={32}
             className="w-8 h-8 rounded-full"
           />
         )}

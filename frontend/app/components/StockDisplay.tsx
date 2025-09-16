@@ -40,7 +40,7 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
         const res = await fetch(`/api/getStock?symbol=${symbol}&range=5d&interval=15m`);
         const data = await res.json();
         setStockData(data);
-      } catch (err) {
+      } catch {
         setStockData(null);
       } finally {
         setLoading(false);
@@ -55,7 +55,7 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
         const res = await fetch(`/api/getStockRealtime?symbol=${symbol}`);
         const data = await res.json();
         setMarketPrice(data);
-      } catch (error) {
+      } catch {
         setMarketPrice(null);
       }
     };
@@ -72,7 +72,7 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
         const data = await res.json();
         setMarketPrice(data);
       } catch (error) {
-        console.error(error)
+        console.error("Error fetching real-time price:", error);
       }
     }, 5000);
 
@@ -96,7 +96,7 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
         const data = await res.json();
         setMarketPrice(data);
       } catch (error) {
-        console.error(error)
+        console.error("Error fetching real-time price:", error);
       }
     }, 5000);
 
@@ -114,7 +114,8 @@ const StockDisplay: React.FC<StockDisplayProps> = ({
           {loading ? (
             <div className="text-xs text-gray-400">Loading chart...</div>
           ) : stockData ? (
-            <AMRNChartMini stockData={stockData} symbol={symbol}/>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            <AMRNChartMini stockData={stockData as any} symbol={symbol}/>
             
           ) : (
             <div className="text-xs text-red-400">No chart</div>

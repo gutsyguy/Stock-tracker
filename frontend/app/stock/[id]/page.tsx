@@ -8,7 +8,6 @@ import type { YahooFinanceAssetProfileResponse } from "@/app/interfaces/types";
 import type { UserStock } from "@/app/page";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AlpacaRealtimeQuoteResponse } from "@/app/components/StockDisplay";
-import StockModal from "@/app/components/StockModal";
 
 const Stock = () => {
   const router = useRouter();
@@ -98,7 +97,7 @@ const Stock = () => {
         const data = await res.json();
         console.log(data);
         setMarketPrice(data);
-      } catch (error) {
+      } catch {
         setMarketPrice(null);
       }
     };
@@ -135,7 +134,7 @@ const Stock = () => {
     };
 
     getUserStock();
-  }, [user, symbol]);
+  }, [user, symbol, baseUrl]);
 
   return (
     <div className="flex justify-center">
@@ -153,7 +152,8 @@ const Stock = () => {
         )}
 
         {stockData && !isLoading && !error && (
-          <AMRNChart stockData={stockData} symbol={symbol as string} />
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <AMRNChart stockData={stockData as any} symbol={symbol as string} />
         )}
 
         <div className="flex items-center flex-col">

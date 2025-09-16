@@ -1,17 +1,7 @@
-import { AlpacaBar, AlpacaStockDataResponse } from "@/app/interfaces/types"
+import { AlpacaStockDataResponse } from "@/app/interfaces/types"
 import { NextRequest, NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
-
-const RESOLUTION_MAP: Record<string, string> = {
-  "1": "1Min",
-  "5": "5Min",
-  "15": "15Min",
-  "30": "30Min",
-  "60": "1Hour",
-  "D": "1Day",
-}
-
 
 const rangeIntervalToResolution: Record<string, string> = {
   "1d_5m": "15Min",

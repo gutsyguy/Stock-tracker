@@ -1,9 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuth } from "./contexts/AuthContext";
-import StockDisplay from "./components/StockDisplay";
-import Link from "next/link";
 
 export interface UserStock {
   email: string;
@@ -14,38 +10,6 @@ export interface UserStock {
 }
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
-  const [portfolio, setPortfolio] = useState<UserStock[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // Load portfolio from localStorage for demo purposes
-    const loadPortfolio = () => {
-      setLoading(true);
-      try {
-        const savedPortfolio = localStorage.getItem(`portfolio_${user?.email}`);
-        if (savedPortfolio) {
-          setPortfolio(JSON.parse(savedPortfolio));
-        }
-      } catch (error) {
-        console.error("Failed to load portfolio:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user?.email) {
-      loadPortfolio();
-    }
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-500">Loading portfolio...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex justify-center">

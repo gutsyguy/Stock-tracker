@@ -47,7 +47,7 @@ export interface AssetProfile {
   overallRisk: number;
   governanceEpochDate: string;
   compensationAsOfEpochDate: string;
-  executiveTeam: any[];
+  executiveTeam: unknown[];
   maxAge: number;
 }
 

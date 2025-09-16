@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import AuthButton from "./AuthButton";
 import SearchBar from "./SearchBar";
 
 export default function Header() {

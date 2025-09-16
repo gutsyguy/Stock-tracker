@@ -13,6 +13,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ data: quoteSummary });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch company data" }, { status: 500 });
+    return NextResponse.json({ error: error as string }, { status: 500 });
   }
 }

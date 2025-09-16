@@ -27,7 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (session?.user) {
       setUser({
-        id: session.user.id || session.user.email || "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        id: (session.user as any).id || session.user.email || "",
         name: session.user.name || "",
         email: session.user.email || "",
         image: session.user.image || undefined,

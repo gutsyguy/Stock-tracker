@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import Chart from "chart.js/auto";
 import type { Chart as ChartJS } from "chart.js";
 import type { ChartConfiguration } from "chart.js";
@@ -15,7 +15,7 @@ interface AlpacaBar {
 }
 
 interface AMRNChartMiniProps {
-  stockData: any;
+  stockData: { data?: { bars?: { [key: string]: { [key: string]: AlpacaBar[] } } } } | null;
   symbol: string;
 }
 
@@ -29,18 +29,11 @@ const AMRNChartMini: React.FC<AMRNChartMiniProps> = ({ stockData, symbol }) => {
 
   const bars: AlpacaBar[] | undefined = stockData?.data?.bars?.[symbol]?.[symbol];
 
-  if (!bars || bars.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-8">
-        <p className="text-gray-500 text-xs">No chart</p>
-      </div>
-    );
-  }
-
-  const labels = bars.map((bar) => new Date(bar.t).toLocaleTimeString());
-  const closingPrices = bars.map((bar) => bar.c);
+  const labels = useMemo(() => bars?.map((bar) => new Date(bar.t).toLocaleTimeString()) ?? [], [bars]);
+  const closingPrices = useMemo(() => bars?.map((bar) => bar.c) ?? [], [bars]);
 
   useEffect(() => {
+    if (!bars || bars.length === 0) return;
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
@@ -93,7 +86,15 @@ const AMRNChartMini: React.FC<AMRNChartMiniProps> = ({ stockData, symbol }) => {
         chartInstance.current = null;
       }
     };
-  }, [labels, closingPrices, symbol]);
+  }, [labels, closingPrices, symbol, bars]);
+
+  if (!bars || bars.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-8">
+        <p className="text-gray-500 text-xs">No chart</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: 120, height: 32 }}>
