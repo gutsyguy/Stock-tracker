@@ -3,7 +3,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,6 @@ import (
 
 func main() {
 	// Load configuration
-	r := gin.Default()
 	cfg := config.Load()
 
 	// Initialize database connection
@@ -44,11 +42,4 @@ func main() {
 	if err := router.Run(":" + cfg.Server.Port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	r.Run(":" + port)
 }
