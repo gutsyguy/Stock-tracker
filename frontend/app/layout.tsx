@@ -31,6 +31,7 @@ export default function RootLayout({
         suppressHydrationWarning>
         <Providers>
           <Header />
+          
           <main className="pt-16 bg-white min-h-screen">
             {children}
           </main>
