@@ -16,7 +16,6 @@ interface PortfolioAnalyticsProps {
   cashBalance: number;
 }
 
-
 interface TrendAlert {
   symbol: string;
   type: "spike" | "crash" | "upward" | "downward";
