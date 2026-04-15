@@ -44,5 +44,25 @@ export async function ensureUserExists(email: string, name?: string | null): Pro
     throw insertError;
   }
 
+  // Seed new user with $100,000 in mock CASH
+  let cashStockId;
+  const { data: cashRes } = await supabase.from('stocks').select('id').eq('symbol', 'CASH').single();
+  if (cashRes) {
+    cashStockId = cashRes.id;
+  } else {
+    const { data: newCash } = await supabase.from('stocks').insert([{ symbol: 'CASH', name: 'US Dollars' }]).select('id').single();
+    if (newCash) cashStockId = newCash.id;
+  }
+
+  if (cashStockId) {
+    await supabase.from('user_stock_transactions').insert([{
+      user_id: newUser.id,
+      stock_id: cashStockId,
+      transaction_type: 'BUY',
+      quantity: 100000.0,
+      price: 1.00
+    }]);
+  }
+
   return newUser.id;
 }

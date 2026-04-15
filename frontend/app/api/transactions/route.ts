@@ -50,7 +50,40 @@ export async function POST(request: NextRequest) {
         stockId = insertStock.id;
       }
 
-      // 2. Insert Transaction
+      // 1.5 Get CASH Stock ID for ledger
+      let cashStockId;
+      const { data: cashRes } = await supabase.from('stocks').select('id').eq('symbol', 'CASH').single();
+      if (cashRes) {
+        cashStockId = cashRes.id;
+      } else {
+        const { data: newCash } = await supabase.from('stocks').insert([{ symbol: 'CASH', name: 'US Dollars' }]).select('id').single();
+        if (newCash) cashStockId = newCash.id;
+      }
+
+      const totalValue = quantity * price;
+
+      // 1.8 Verify Funds for Buying
+      if (transaction_type === 'BUY' && cashStockId) {
+        const { data: cashTrans } = await supabase
+          .from('user_stock_transactions')
+          .select('transaction_type, quantity')
+          .eq('user_id', userId)
+          .eq('stock_id', cashStockId);
+
+        let cashBalance = 0;
+        if (cashTrans) {
+          cashTrans.forEach(t => {
+            if (t.transaction_type === 'BUY') cashBalance += Number(t.quantity);
+            else if (t.transaction_type === 'SELL') cashBalance -= Number(t.quantity);
+          });
+        }
+
+        if (cashBalance < totalValue) {
+          return NextResponse.json({ error: 'Insufficient funds for this transaction' }, { status: 400 });
+        }
+      }
+
+      // 2. Insert Stock Transaction
       const { data: transRes, error: transErr } = await supabase
         .from('user_stock_transactions')
         .insert([{
@@ -64,6 +97,17 @@ export async function POST(request: NextRequest) {
         .single();
         
       if (transErr) throw transErr;
+
+      // 3. Insert paired CASH Transaction (Double-entry Ledger)
+      if (cashStockId) {
+        await supabase.from('user_stock_transactions').insert([{
+           user_id: userId,
+           stock_id: cashStockId,
+           transaction_type: transaction_type === 'BUY' ? 'SELL' : 'BUY',
+           quantity: totalValue,
+           price: 1.0
+        }]);
+      }
 
       return NextResponse.json(transRes, { status: 201 });
     } catch (e) {

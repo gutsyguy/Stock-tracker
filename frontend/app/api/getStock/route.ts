@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 const rangeIntervalToResolution: Record<string, string> = {
-  "1d_5m": "15Min",
+  "1d_5m": "5Min",
   "5d_15m": "15Min",
   "1mo_1d": "1Day",
   "3mo_1d": "1Day",
@@ -40,16 +40,8 @@ export async function GET(request: NextRequest) {
   let end: Date = new Date();
 
   if (range === "1d") {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(13, 30, 0, 0);
-
-    const close = new Date();
-    close.setDate(close.getDate() - 1);
-    close.setHours(20, 0, 0, 0); 
-
-    start = yesterday;
-    end = close;
+    start = new Date();
+    start.setDate(start.getDate() - 5);
   } else {
     const days = rangeToDays[range] || 180;
     start = new Date(end);
@@ -85,14 +77,24 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json()
 
-    if (!data.bars || data.bars.length === 0) {
+    if (!data.bars || !data.bars[symbol] || data.bars[symbol].length === 0) {
       return NextResponse.json(
         { error: "No chart data available", data: null },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ data:{bars:{[symbol]: data.bars}} } as AlpacaStockDataResponse)
+    if (range === "1d") {
+      const barsArray = data.bars[symbol];
+      if (barsArray.length > 0) {
+         const lastBarTime = new Date(barsArray[barsArray.length - 1].t);
+         const lastDayString = lastBarTime.toDateString();
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         data.bars[symbol] = barsArray.filter((b: any) => new Date(b.t).toDateString() === lastDayString);
+      }
+    }
+
+    return NextResponse.json({ data:{bars:{[symbol]: data.bars[symbol]}} } as AlpacaStockDataResponse)
   } catch (error) {
     console.error("Alpaca API Error:", error)
     return NextResponse.json(

@@ -27,7 +27,7 @@ const Stock = () => {
   const { id: symbol } = useParams();
   const searchParams = useSearchParams();
   const [range, setRange] = useState(searchParams.get("range") ?? "6mo");
-  const [interval, setInterval] = useState(
+  const [intervalSetting, setIntervalSetting] = useState(
     searchParams.get("interval") ?? "1wk"
   );
   const [stockData, setStockData] = useState<AlpacaStockDataResponse | null>(
@@ -40,6 +40,9 @@ const Stock = () => {
   const [userStock, setUserStock] = useState<null | UserStock>(null);
   const [marketPrice, setMarketPrice] =
     useState<null | AlpacaRealtimeQuoteResponse>(null);
+  const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [liveWsPrice, setLiveWsPrice] = useState<number | null>(null);
 
   // Legacy baseUrl removed since we fetch natively from NextJS API
 
@@ -49,7 +52,7 @@ const Stock = () => {
       setError(null);
       try {
         const response = await fetch(
-          `/api/getStock?symbol=${symbol}&range=${range}&interval=${interval}`
+          `/api/getStock?symbol=${symbol}&range=${range}&interval=${intervalSetting}`
         );
         const data: AlpacaStockDataResponse = await response.json();
 
@@ -68,7 +71,7 @@ const Stock = () => {
     };
 
     fetchStockData();
-  }, [range, interval, symbol]);
+  }, [range, intervalSetting, symbol]);
 
   useEffect(() => {
     const fetchCompanyData = async () => {
@@ -93,18 +96,69 @@ const Stock = () => {
   }, [symbol]);
 
   useEffect(() => {
+    // 1. Initial snapshot using Alpaca
     const fetchCurrentPrice = async () => {
       try {
         const res = await fetch(`/api/getStockRealtime?symbol=${symbol}`);
-        const data = await res.json();
-        console.log(data);
-        setMarketPrice(data);
+        if (res.ok) {
+            const data = await res.json();
+            setMarketPrice(data);
+        }
       } catch {
-        setMarketPrice(null);
+        // Keep old price to prevent UI jitter
       }
     };
+    
     fetchCurrentPrice();
-  }, [symbol]);
+    setLiveWsPrice(null); // Reset live ws price on symbol change
+
+    // 2. High frequency websocket streaming
+    let ws: WebSocket;
+    
+    if (range === "1d") {
+      const connectWebSocket = async () => {
+        try {
+          const res = await fetch('/api/ws-token');
+          const { token } = await res.json();
+          if (!token) return;
+
+          ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
+          
+          ws.onopen = () => {
+            console.log(`📡 WebSocket connected for ${symbol}`);
+            ws.send(JSON.stringify({ type: "subscribe", symbol: symbol }));
+          };
+
+          ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'trade' && message.data?.length > 0) {
+              const latestTrade = message.data[message.data.length - 1];
+              if (latestTrade?.p) {
+                setLiveWsPrice(latestTrade.p);
+              }
+            }
+          };
+
+          ws.onerror = (err) => console.error("WebSocket error", err);
+          
+        } catch (error) {
+          console.error("Failed to connect Finnhub WebSockets", error);
+        }
+      };
+
+      connectWebSocket();
+    }
+
+    return () => {
+       if (ws) {
+         if (ws.readyState === WebSocket.OPEN) {
+           ws.send(JSON.stringify({ type: "unsubscribe", symbol: symbol }));
+         }
+         ws.close();
+         console.log(`🔌 WebSocket disconnected for ${symbol}`);
+       }
+    }
+  }, [symbol, range]);
 
   useEffect(() => {
     const getUserStock = async () => {
@@ -145,7 +199,7 @@ const Stock = () => {
 
   return (
     <div className="flex justify-center">
-      <div className="mt-10">
+      <div className="mt-10 w-[80%]">
         {isLoading && (
           <div className="flex justify-center items-center h-64">
             <p className="text-gray-500">Loading chart data...</p>
@@ -159,8 +213,29 @@ const Stock = () => {
         )}
 
         {stockData && !isLoading && !error && (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <AMRNChart stockData={stockData as any} symbol={symbol as string} />
+          <div className="w-full flex flex-col items-center">
+            {/* Robinhood Style Giant Price Header */}
+            <div className="mb-4 mt-2 text-center">
+              <h1 className="text-6xl font-light text-gray-900 tracking-tighter">
+                ${(hoveredPrice ?? liveWsPrice ?? marketPrice?.data.quote.bp ?? marketPrice?.data.quote.ap ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h1>
+              <h2 className="text-gray-500 text-lg mt-1 h-6 font-medium">
+                 {hoveredLabel ? hoveredLabel : "Live Data"}
+              </h2>
+            </div>
+            
+            <div className="w-full max-w-5xl border border-black">
+              <AMRNChart 
+                stockData={stockData as any} 
+                symbol={symbol as string} 
+                livePrice={liveWsPrice || marketPrice?.data.quote.bp || marketPrice?.data.quote.ap}
+                onHoverData={(price, label) => {
+                  setHoveredPrice(price);
+                  setHoveredLabel(label);
+                }}
+              />
+            </div>
+          </div>
         )}
 
         <div className="flex items-center flex-col">
@@ -170,7 +245,7 @@ const Stock = () => {
                 key={index}
                 onClick={() => {
                   setRange(pair.range);
-                  setInterval(pair.interval);
+                  setIntervalSetting(pair.interval);
                   router.replace(
                     `/stock/${symbol}?range=${pair.range}&interval=${pair.interval}`,
                     { scroll: false }

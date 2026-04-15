@@ -72,7 +72,7 @@ export async function GET(_request: NextRequest) {
 
     // Map aggregated keys mapping to expected NextJS output:
     const portfolio = Object.values(aggregated)
-      .filter((s: AggregatedStock) => s.net_quantity > 0)
+      .filter((s: AggregatedStock) => s.net_quantity > 0 && s.symbol !== 'CASH')
       .map((s: AggregatedStock) => {
         // Average buy price logic
         const avgBuyPrice = s.total_buy_quantity > 0 ? (s.total_buy_spend / s.total_buy_quantity) : 0;
@@ -95,8 +95,12 @@ export async function GET(_request: NextRequest) {
         };
       });
 
+    const cashRecord = aggregated['CASH'];
+    const cashBalance = cashRecord ? cashRecord.net_quantity : 0;
+
     return NextResponse.json({
       portfolio,
+      cashBalance,
       count: portfolio.length
     });
   } catch (error: unknown) {
@@ -106,43 +110,5 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const symbol = searchParams.get('symbol');
-
-  if (!symbol) {
-     return NextResponse.json({ error: 'Symbol required' }, { status: 400 });
-  }
-
-  const userId = await ensureUserExists(session.user.email, session.user.name);
-
-  try {
-    const { data: stockRes, error: stockErr } = await supabase
-      .from('stocks')
-      .select('id')
-      .eq('symbol', symbol)
-      .single();
-
-    if (stockErr || !stockRes) {
-      return NextResponse.json({ error: 'Stock not found' }, { status: 404 });
-    }
-
-    const { error: deleteErr } = await supabase
-      .from('user_stock_transactions')
-      .delete()
-      .eq('user_id', userId)
-      .eq('stock_id', stockRes.id);
-
-    if (deleteErr) throw deleteErr;
-
-    return NextResponse.json({ success: true });
-  } catch (error: unknown) {
-    console.error('Delete error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
-  }
+  return NextResponse.json({ error: 'Direct deletion is disabled in Paper Trading mode. Use SELL instead to liquidate shares.' }, { status: 400 });
 }

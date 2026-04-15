@@ -20,6 +20,7 @@ const StockModal = ({
   const [marketPrice, setMarketPrice] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [userStock, setUserStock] = useState<null | UserStock>(null);
+  const [cashBalance, setCashBalance] = useState<number>(0);
 
   const bars: AlpacaBar[] | undefined =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,10 +45,12 @@ const StockModal = ({
         const res = await fetch('/api/portfolio');
         if (res.ok) {
           const data = await res.json();
-          const stock = data.portfolio.find((s: UserStock) => s.symbol === symbol);
+          const stock = data.portfolio?.find((s: UserStock) => s.symbol === symbol);
           setUserStock(stock || null);
+          setCashBalance(data.cashBalance || 0);
         } else {
           setUserStock(null);
+          setCashBalance(0);
         }
       } catch (error) {
         console.error("❌ Failed to retrieve user stock:", error);
@@ -82,8 +85,15 @@ const StockModal = ({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/portfolio?symbol=${symbol}`, {
-        method: "DELETE",
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol,
+          transaction_type: "SELL",
+          quantity: userStock.shares,
+          price: marketPrice,
+        }),
       });
       
       if (res.ok) {
@@ -158,6 +168,12 @@ const StockModal = ({
       return;
     }
 
+    const totalCost = purchaseOption === "dollars" ? dollarsNumber : sharesNumber * marketPrice;
+    if (totalCost > cashBalance) {
+      alert(`Insufficient funds. Your available cash balance is $${cashBalance.toFixed(2)}.`);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -210,6 +226,13 @@ const StockModal = ({
             <></>
           )}
         </div>
+        
+        {optionSelection === "save" && (
+          <div className="text-center text-sm font-semibold text-green-600 mb-2">
+            Available Buying Power: ${cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        )}
+
         {optionSelection === "save" ? (
           <div>
             <div className="flex flex-1 flex-row justify-evenly items-center gap-8">
@@ -276,11 +299,15 @@ const StockModal = ({
             </div>
             <div className="flex justify-center">
               <button
-                className="mt-8 py-2 px-6 bg-blue-600 text-white rounded-lg self-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className={`mt-8 py-2 px-6 text-white rounded-lg self-center disabled:bg-gray-400 disabled:cursor-not-allowed ${
+                  ((purchaseOption === "dollars" ? Number(dollars) : Number(shares) * marketPrice) > cashBalance) 
+                  ? "bg-red-500 hover:bg-red-600" 
+                  : "bg-blue-600 hover:bg-blue-700"
+                }`}
                 onClick={handleCreateStock}
-                disabled={isSubmitting || !user?.email}
+                disabled={isSubmitting || !user?.email || ((purchaseOption === "dollars" ? Number(dollars) : Number(shares) * marketPrice) > cashBalance)}
               >
-                {isSubmitting ? "Creating..." : "Review Stock"}
+                {isSubmitting ? "Processing..." : ((purchaseOption === "dollars" ? Number(dollars) : Number(shares) * marketPrice) > cashBalance ? "Insufficient Cash" : "Buy Stock")}
               </button>
             </div>
           </div>
