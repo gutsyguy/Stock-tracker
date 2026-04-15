@@ -28,8 +28,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
+        suppressHydrationWarning>
         <Providers>
           <Header />
           <main className="pt-16 bg-white min-h-screen">
