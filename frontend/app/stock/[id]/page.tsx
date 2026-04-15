@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AMRNChart from "@/app/components/AMRNChart";
+import StockModal from "@/app/components/StockModal";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import type { AlpacaStockDataResponse } from "@/app/interfaces/types";
 import type { FinnhubCompanyProfileResponse } from "@/app/interfaces/types";
@@ -43,6 +44,7 @@ const Stock = () => {
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null);
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const [liveWsPrice, setLiveWsPrice] = useState<number | null>(null);
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
   // Legacy baseUrl removed since we fetch natively from NextJS API
 
@@ -215,13 +217,22 @@ const Stock = () => {
         {stockData && !isLoading && !error && (
           <div className="w-full flex flex-col items-center">
             {/* Robinhood Style Giant Price Header */}
-            <div className="mb-4 mt-2 text-center">
+            <div className="mb-4 mt-2 text-center relative w-full max-w-5xl">
               <h1 className="text-6xl font-light text-gray-900 tracking-tighter">
                 ${(hoveredPrice ?? liveWsPrice ?? marketPrice?.data.quote.bp ?? marketPrice?.data.quote.ap ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h1>
               <h2 className="text-gray-500 text-lg mt-1 h-6 font-medium">
                  {hoveredLabel ? hoveredLabel : "Live Data"}
               </h2>
+              
+              <div className="absolute right-0 top-4">
+                 <button 
+                   onClick={() => setIsTradeModalOpen(true)}
+                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105"
+                 >
+                   Trade {symbol}
+                 </button>
+              </div>
             </div>
             
             <div className="w-full max-w-5xl border border-black">
@@ -353,6 +364,14 @@ const Stock = () => {
               </a>
             )}
           </div>
+        )}
+
+        {isTradeModalOpen && stockData && (
+          <StockModal 
+            stockData={stockData as any} 
+            symbol={symbol as string} 
+            onClose={() => setIsTradeModalOpen(false)} 
+          />
         )}
       </div>
     </div>

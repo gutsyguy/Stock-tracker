@@ -9,9 +9,11 @@ import { useAuth } from "../contexts/AuthContext";
 const StockModal = ({
   stockData,
   symbol,
+  onClose
 }: {
   stockData: AlpacaStockDataResponse;
   symbol: string;
+  onClose: () => void;
 }) => {
   const { user } = useAuth();
   const [purchaseOption, setPurchaseOption] = useState<string>("shares");
@@ -24,7 +26,7 @@ const StockModal = ({
 
   const bars: AlpacaBar[] | undefined =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (stockData?.data?.bars as any)?.[symbol]?.[symbol];
+    (stockData?.data?.bars as any)?.[symbol];
 
   useEffect(() => {
     if (bars && bars.length > 0) {
@@ -202,9 +204,20 @@ const StockModal = ({
   };
 
   return (
-    <div className="fixed top-0 right-0 h-full text-black flex items-center justify-end pr-8 z-50">
-      <div className="bg-white shadow-2xl rounded-lg h-[70vh] flex flex-col justify-evenly p-8">
-        <div className="flex justify-evenly">
+    <>
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm z-40 transition-opacity" 
+        onClick={onClose}
+      />
+      <div className="fixed top-0 right-0 h-full text-black flex items-center justify-end pr-8 z-50">
+        <div className="bg-white shadow-2xl rounded-2xl w-[400px] h-[70vh] relative flex flex-col justify-evenly p-8">
+          <button 
+            onClick={onClose} 
+            className="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors"
+          >
+            ✕
+          </button>
+          <div className="flex justify-evenly">
           <h1
             className={`text-center text-md font-bold mb-4 hover:underline ${
               optionSelection === "save" ? "text-blue-400" : ""
@@ -395,6 +408,7 @@ const StockModal = ({
         )}
       </div>
     </div>
+    </>
   );
 };
 

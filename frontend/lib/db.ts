@@ -59,7 +59,7 @@ export async function ensureUserExists(email: string, name?: string | null): Pro
       user_id: newUser.id,
       stock_id: cashStockId,
       transaction_type: 'BUY',
-      quantity: 100000.0,
+      quantity: 10000.0,
       price: 1.00
     }]);
   }

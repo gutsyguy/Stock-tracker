@@ -30,7 +30,7 @@ const rangeToDays: Record<string, number> = {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
 
-  const symbol = searchParams.get("symbol") || "AAPL"
+  const symbols = searchParams.get("symbols") || searchParams.get("symbol") || "AAPL"
   const range = searchParams.get("range") || "6mo";
   const interval = searchParams.get("interval") || "1wk";
   const resolutionKey = `${range}_${interval}`;
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   const endISO = end.toISOString();
 
   const url = `${process.env.ALPACA_URL!}/v2/stocks/bars` +
-  `?symbols=${encodeURIComponent(symbol)}` +
+  `?symbols=${encodeURIComponent(symbols)}` +
   `&timeframe=${encodeURIComponent(resolution)}` +
   `&start=${encodeURIComponent(startISO)}` +
   `&end=${encodeURIComponent(endISO)}` +
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json()
 
-    if (!data.bars || !data.bars[symbol] || data.bars[symbol].length === 0) {
+    if (!data.bars || Object.keys(data.bars).length === 0) {
       return NextResponse.json(
         { error: "No chart data available", data: null },
         { status: 404 }
@@ -85,16 +85,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (range === "1d") {
-      const barsArray = data.bars[symbol];
-      if (barsArray.length > 0) {
-         const lastBarTime = new Date(barsArray[barsArray.length - 1].t);
-         const lastDayString = lastBarTime.toDateString();
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-         data.bars[symbol] = barsArray.filter((b: any) => new Date(b.t).toDateString() === lastDayString);
-      }
+      Object.keys(data.bars).forEach((sym) => {
+        const barsArray = data.bars[sym];
+        if (barsArray.length > 0) {
+           const lastBarTime = new Date(barsArray[barsArray.length - 1].t);
+           const lastDayString = lastBarTime.toDateString();
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           data.bars[sym] = barsArray.filter((b: any) => new Date(b.t).toDateString() === lastDayString);
+        }
+      });
     }
 
-    return NextResponse.json({ data:{bars:{[symbol]: data.bars[symbol]}} } as AlpacaStockDataResponse)
+    return NextResponse.json({ data:{bars: data.bars} } as AlpacaStockDataResponse)
   } catch (error) {
     console.error("Alpaca API Error:", error)
     return NextResponse.json(
