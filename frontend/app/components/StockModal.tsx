@@ -34,18 +34,17 @@ const StockModal = ({
   const [optionSelection, setOptionSelection] = useState<string>("save");
 
   useEffect(() => {
-    const getUserStock = () => {
+    const getUserStock = async () => {
       if (!user?.email) {
         setUserStock(null);
         return;
       }
 
       try {
-        // Load user stock from localStorage
-        const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
-        if (savedPortfolio) {
-          const portfolio = JSON.parse(savedPortfolio);
-          const stock = portfolio.find((s: UserStock) => s.symbol === symbol);
+        const res = await fetch('/api/portfolio');
+        if (res.ok) {
+          const data = await res.json();
+          const stock = data.portfolio.find((s: UserStock) => s.symbol === symbol);
           setUserStock(stock || null);
         } else {
           setUserStock(null);
@@ -83,16 +82,16 @@ const StockModal = ({
     setIsSubmitting(true);
 
     try {
-      // Remove stock from localStorage portfolio
-      const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
-      if (savedPortfolio) {
-        const portfolio = JSON.parse(savedPortfolio);
-        const updatedPortfolio = portfolio.filter((s: UserStock) => s.symbol !== symbol);
-        localStorage.setItem(`portfolio_${user.email}`, JSON.stringify(updatedPortfolio));
+      const res = await fetch(`/api/portfolio?symbol=${symbol}`, {
+        method: "DELETE",
+      });
+      
+      if (res.ok) {
         console.log("✅ All shares sold");
         setUserStock(null);
-        // Refresh the page to update the UI
         window.location.reload();
+      } else {
+        console.error("Failed to sell all shares");
       }
     } catch (error) {
       console.error("❌ Error selling all shares:", error);
@@ -122,26 +121,22 @@ const StockModal = ({
     setIsSubmitting(true);
 
     try {
-      // Update portfolio in localStorage
-      const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
-      if (savedPortfolio) {
-        const portfolio = JSON.parse(savedPortfolio);
-        const stockIndex = portfolio.findIndex((s: UserStock) => s.symbol === symbol);
-        
-        if (stockIndex !== -1) {
-          const remainingShares = portfolio[stockIndex].shares - finalShares;
-          if (remainingShares <= 0) {
-            // Remove stock completely
-            portfolio.splice(stockIndex, 1);
-          } else {
-            // Update shares
-            portfolio[stockIndex].shares = remainingShares;
-          }
-          localStorage.setItem(`portfolio_${user.email}`, JSON.stringify(portfolio));
-          console.log("✅ Stock sold");
-          // Refresh the page to update the UI
-          window.location.reload();
-        }
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol,
+          transaction_type: "SELL",
+          quantity: finalShares,
+          price: marketPrice,
+        }),
+      });
+
+      if (res.ok) {
+        console.log("✅ Stock sold");
+        window.location.reload();
+      } else {
+        console.error("Failed to sell stock");
       }
     } catch (error) {
       console.error("❌ Error selling stock:", error);
@@ -166,39 +161,23 @@ const StockModal = ({
     setIsSubmitting(true);
 
     try {
-      // Update portfolio in localStorage
-      const savedPortfolio = localStorage.getItem(`portfolio_${user.email}`);
-      const portfolio = savedPortfolio ? JSON.parse(savedPortfolio) : [];
-      
-      const existingStockIndex = portfolio.findIndex((s: UserStock) => s.symbol === symbol);
-      
-      if (existingStockIndex !== -1) {
-        // Update existing stock (add shares and recalculate average price)
-        const existingStock = portfolio[existingStockIndex];
-        const totalShares = existingStock.shares + finalShares;
-        const totalCost = (existingStock.shares * existingStock.purchasePrice) + (finalShares * marketPrice);
-        const averagePrice = totalCost / totalShares;
-        
-        portfolio[existingStockIndex] = {
-          ...existingStock,
-          shares: totalShares,
-          purchasePrice: averagePrice,
-        };
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol,
+          transaction_type: "BUY",
+          quantity: finalShares,
+          price: marketPrice,
+        }),
+      });
+
+      if (res.ok) {
+        console.log("✅ Stock added to portfolio");
+        window.location.reload();
       } else {
-        // Add new stock
-        portfolio.push({
-          email: user.email,
-          symbol: symbol,
-          shares: Math.round(finalShares * 100) / 100,
-          purchasePrice: marketPrice,
-          currentPrice: marketPrice,
-        });
+        console.error("Failed to save stock");
       }
-      
-      localStorage.setItem(`portfolio_${user.email}`, JSON.stringify(portfolio));
-      console.log("✅ Stock added to portfolio");
-      // Refresh the page to update the UI
-      window.location.reload();
     } catch (error) {
       console.error("❌ Error saving stock:", error);
     } finally {

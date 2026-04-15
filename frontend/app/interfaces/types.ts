@@ -17,9 +17,20 @@ export interface AlpacaBar {
   vw: number;
 }
 
-export interface YahooFinanceAssetProfileResponse {
+export interface FinnhubCompanyProfileResponse {
   data: {
-    assetProfile: AssetProfile;
+    country: string;
+    currency: string;
+    exchange: string;
+    name: string;
+    ticker: string;
+    ipo: string;
+    marketCapitalization: number;
+    phone: string;
+    shareOutstanding: number;
+    logo: string;
+    finnhubIndustry: string;
+    weburl: string;
   };
 }
 

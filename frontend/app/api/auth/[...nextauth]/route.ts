@@ -1,27 +1,6 @@
-import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import NextAuth from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
-const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-  ],
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
-  callbacks: {
-    async session({ session }) {
-      return session;
-    },
-    async jwt({ token }) {
-      return token;
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here-make-it-long-and-random",
-  debug: process.env.NODE_ENV === 'development',
-});
+const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }; 
+export { handler as GET, handler as POST };

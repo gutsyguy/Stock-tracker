@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AMRNChart from "@/app/components/AMRNChart";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import type { AlpacaStockDataResponse } from "@/app/interfaces/types";
-import type { YahooFinanceAssetProfileResponse } from "@/app/interfaces/types";
+import type { FinnhubCompanyProfileResponse } from "@/app/interfaces/types";
 import type { UserStock } from "@/app/page";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { AlpacaRealtimeQuoteResponse } from "@/app/components/StockDisplay";
@@ -34,14 +34,14 @@ const Stock = () => {
     null
   );
   const [companyData, setCompanyData] =
-    useState<YahooFinanceAssetProfileResponse | null>(null);
+    useState<FinnhubCompanyProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [userStock, setUserStock] = useState<null | UserStock>(null);
   const [marketPrice, setMarketPrice] =
     useState<null | AlpacaRealtimeQuoteResponse>(null);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  // Legacy baseUrl removed since we fetch natively from NextJS API
 
   useEffect(() => {
     const fetchStockData = async () => {
@@ -74,15 +74,17 @@ const Stock = () => {
     const fetchCompanyData = async () => {
       try {
         const response = await fetch(`/api/getProfile?symbol=${symbol}`);
-        const data: YahooFinanceAssetProfileResponse = await response.json();
+        const data: FinnhubCompanyProfileResponse = await response.json();
 
-        if (!response.ok || data.data == null) {
-          throw new Error("Failed to fetch company profile");
+        if (!response.ok || !data?.data) {
+          console.warn("Company profile not available or rate limited.");
+          setCompanyData(null);
+          return;
         }
 
         setCompanyData(data);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching company data:", error);
         setCompanyData(null);
       }
     };
@@ -107,10 +109,7 @@ const Stock = () => {
   useEffect(() => {
     const getUserStock = async () => {
       try {
-        const response = await fetch(
-          `${baseUrl}/api/stock/get?email=${user?.email}&symbol=${symbol}`,
-          { method: "GET" }
-        );
+        const response = await fetch('/api/portfolio', { method: "GET" });
 
         if (!response.ok) {
           console.error("❌ HTTP error:", response.status);
@@ -120,13 +119,21 @@ const Stock = () => {
 
         const result = await response.json();
 
-        // Optional: check if result is valid object
-        if (!result || Object.keys(result).length === 0) {
+        // Ensure portfolio array exists
+        if (!result || !Array.isArray(result.portfolio)) {
           setUserStock(null);
           return;
         }
 
-        setUserStock(result);
+        // Find precisely this stock in the returned portfolio
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const matchedStock = result.portfolio.find((s: any) => s.symbol.toUpperCase() === (symbol as string).toUpperCase());
+        
+        if (matchedStock && matchedStock.shares > 0) {
+          setUserStock(matchedStock);
+        } else {
+          setUserStock(null);
+        }
       } catch (error) {
         console.error("❌ Failed to retrieve stocks:", error);
         setUserStock(null);
@@ -134,7 +141,7 @@ const Stock = () => {
     };
 
     getUserStock();
-  }, [user, symbol, baseUrl]);
+  }, [user, symbol]);
 
   return (
     <div className="flex justify-center">
@@ -244,35 +251,32 @@ const Stock = () => {
         )}
 
         {companyData && (
-          <div className="flex items-center flex-col mt-8 px-6 text-gray-700">
-            <h1 className="text-xl font-semibold mb-2">About {symbol}</h1>
-            <p className="text-start max-w-3xl text-sm ">
-              {companyData.data.assetProfile.longBusinessSummary}
-            </p>
-
-            <div className="flex w-[80%] justify-evenly py-4">
-              <div>
-                <h2>CEO</h2>
-                <h2>
-                  {companyData.data.assetProfile.companyOfficers[0].name.slice(
-                    3,
-                    companyData.data.assetProfile.companyOfficers[0].name.length
-                  )}
-                </h2>
-              </div>
-              <div>
-                <h2>Employees</h2>
-                <h2>{companyData.data.assetProfile.fullTimeEmployees}</h2>
-              </div>
-              <div>
-                <h2>HQ</h2>
-                <h2>
-                  {companyData.data.assetProfile.city},{" "}
-                  {companyData.data.assetProfile.state},{" "}
-                  {companyData.data.assetProfile.country}
-                </h2>
-              </div>
+          <div className="flex items-center flex-col mt-8 px-6 text-gray-700 w-full mb-10">
+            <h1 className="text-2xl font-bold mb-4">{companyData.data.name}</h1>
+            <div className="flex w-[80%] justify-evenly py-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex flex-col items-center">
+                    <span className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Industry</span>
+                    <span className="text-lg font-medium">{companyData.data.finnhubIndustry}</span>
+                </div>
+                <div className="flex flex-col items-center hidden sm:flex">
+                    <span className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Exchange</span>
+                    <span className="text-lg font-medium">{companyData.data.exchange}</span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Market Cap</span>
+                    <span className="text-lg font-medium">${(companyData.data.marketCapitalization / 1000).toFixed(2)}B</span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">IPO Date</span>
+                    <span className="text-lg font-medium">{companyData.data.ipo}</span>
+                </div>
             </div>
+            
+            {companyData.data.weburl && (
+              <a href={companyData.data.weburl} target="_blank" rel="noopener noreferrer" className="mt-4 text-blue-600 hover:text-blue-800 underline">
+                  Visit Official Website
+              </a>
+            )}
           </div>
         )}
       </div>

@@ -30,10 +30,18 @@ const SearchBar = () => {
         const response = await fetch(
           `/api/autocomplete?symbol=${encodeURIComponent(search)}`
         );
+        const data = await response.json();
+
+        if (response.status === 429) {
+          // Rate limited — show empty results silently
+          setFilteredData([]);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error("Failed to fetch");
         }
-        const data = await response.json();
+
         // Expecting: { data: { quotes: [...] } }
         if (data.data && Array.isArray(data.data.quotes)) {
           setFilteredData(data.data.quotes);
@@ -49,7 +57,7 @@ const SearchBar = () => {
       }
     };
 
-    const debounceTimer = setTimeout(fetchStockData, 300);
+    const debounceTimer = setTimeout(fetchStockData, 500);
     return () => clearTimeout(debounceTimer);
   }, [search]);
 
