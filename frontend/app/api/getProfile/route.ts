@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     const res = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${finnhubKey}`, {
-      next: { revalidate: 3600 } // Cache this for an hour to keep API limits safe
+      next: { revalidate: 3600 } 
     });
     
     if (!res.ok) {
@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json();
     
-    // Finnhub returns an empty object {} if symbol isn't found
     if (!data || Object.keys(data).length === 0) {
       return NextResponse.json({ error: "Company profile not found" }, { status: 404 });
     }
